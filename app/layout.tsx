@@ -22,7 +22,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  reexport default function RootLayout({
+  export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
