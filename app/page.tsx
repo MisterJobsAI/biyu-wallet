@@ -28,8 +28,8 @@ type Tx = {
   occurred_at: string;
   status: string;
   created_at?: string;
-  // join: Supabase a veces lo devuelve como ARRAY
-  categories?: { name: string }[] | null;
+  // ✅ Supabase a veces devuelve array en joins
+  categories?: { name: string }[] | { name: string } | null;
 };
 
 type Budget = {
@@ -45,8 +45,8 @@ type BudgetLimit = {
   budget_id: string;
   category_id: string;
   limit_cop: number;
-  // join: Supabase a veces lo devuelve como ARRAY
-  categories?: { name: string }[] | null;
+  // ✅ Supabase a veces devuelve array en joins
+  categories?: { name: string }[] | { name: string } | null;
 };
 
 type AlertItem = {
@@ -77,15 +77,17 @@ function monthLabel(d: Date) {
   return `${y}-${m}-01`;
 }
 
-// helper para joins de supabase (array vs objeto)
-function joinName(rel: any): string | null {
-  if (!rel) return null;
-  if (Array.isArray(rel)) return rel[0]?.name ?? null;
-  return rel?.name ?? null;
+// ✅ Helper: toma nombre de join (array u objeto)
+function joinedName(
+  joined: { name: string }[] | { name: string } | null | undefined
+) {
+  if (!joined) return null;
+  if (Array.isArray(joined)) return joined[0]?.name ?? null;
+  return joined.name ?? null;
 }
 
 export default function Page() {
-  // 🔧 TU UUID REAL de “Sin categoría”
+  // 🔧 Pega aquí tu UUID real de “Sin categoría”
   const UNCATEGORIZED_ID = "2e13320f-fdf8-44a9-96ec-482baaac8e3f";
 
   const [msg, setMsg] = useState<string>("");
@@ -133,8 +135,8 @@ export default function Page() {
   useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getSession();
-      const em = data.session?.user?.email ?? "";
-      setUserEmail(em);
+      const email = data.session?.user?.email ?? "";
+      setUserEmail(email);
 
       const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
         setUserEmail(session?.user?.email ?? "");
@@ -160,6 +162,7 @@ export default function Page() {
   const signOut = async () => {
     await supabase.auth.signOut();
     setMsg("Sesión cerrada.");
+    // reset UI
     setAccounts([]);
     setSelectedAccountId("");
     setCategories([]);
@@ -276,7 +279,7 @@ export default function Page() {
         setMsg(`Error cargando límites: ${blErr.message}`);
         return;
       }
-      setBudgetLimits((bl ?? []) as unknown as BudgetLimit[]);
+      setBudgetLimits((bl ?? []) as BudgetLimit[]);
     } else {
       setBudgetLimits([]);
     }
@@ -295,7 +298,8 @@ export default function Page() {
       setMsg(`Error cargando transacciones: ${txHistErr.message}`);
       return;
     }
-    setTxs((txHist ?? []) as unknown as Tx[]);
+    const hist = (txHist ?? []) as Tx[];
+    setTxs(hist);
 
     // 6) balance
     const { data: txForBalance, error: balErr } = await supabase
@@ -356,22 +360,22 @@ export default function Page() {
         computedAlerts.push({
           key: "total-danger",
           severity: "danger",
-          message: `Excediste el límite total del mes: $${formatCOP(totalSpent)} / $${formatCOP(
-            totalLimit
-          )} COP`,
+          message: `Excediste el límite total del mes: $${formatCOP(
+            totalSpent
+          )} / $${formatCOP(totalLimit)} COP`,
         });
       } else if (ratio >= 0.8) {
         computedAlerts.push({
           key: "total-warning",
           severity: "warning",
-          message: `Cerca del límite total del mes: $${formatCOP(totalSpent)} / $${formatCOP(
-            totalLimit
-          )} COP`,
+          message: `Cerca del límite total del mes: $${formatCOP(
+            totalSpent
+          )} / $${formatCOP(totalLimit)} COP`,
         });
       }
     }
 
-    for (const lim of budgetLimits as BudgetLimit[]) {
+    for (const lim of (budgetLimits ?? []) as BudgetLimit[]) {
       const limValue = Number(lim.limit_cop ?? 0);
       if (!limValue || limValue <= 0) continue;
 
@@ -380,7 +384,7 @@ export default function Page() {
       const ratio = spent / limValue;
 
       const catName =
-        joinName(lim.categories) ??
+        joinedName(lim.categories) ??
         categories.find((c) => c.id === catId)?.name ??
         "Categoría";
 
@@ -388,15 +392,17 @@ export default function Page() {
         computedAlerts.push({
           key: `cat-danger-${catId}`,
           severity: "danger",
-          message: `Excediste ${catName}: $${formatCOP(spent)} / $${formatCOP(limValue)} COP`,
+          message: `Excediste ${catName}: $${formatCOP(spent)} / $${formatCOP(
+            limValue
+          )} COP`,
         });
       } else if (ratio >= 0.8) {
         computedAlerts.push({
           key: `cat-warning-${catId}`,
           severity: "warning",
-          message: `Cerca del límite en ${catName}: $${formatCOP(spent)} / $${formatCOP(
-            limValue
-          )} COP`,
+          message: `Cerca del límite en ${catName}: $${formatCOP(
+            spent
+          )} / $${formatCOP(limValue)} COP`,
         });
       }
     }
@@ -412,7 +418,9 @@ export default function Page() {
   };
 
   useEffect(() => {
-    if (userEmail) refreshData(true);
+    if (userEmail) {
+      refreshData(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userEmail]);
 
@@ -422,11 +430,17 @@ export default function Page() {
   const createAccount = async () => {
     setMsg("");
     const name = newAccountName.trim();
-    if (!name) return setMsg("Escribe un nombre para la cuenta.");
+    if (!name) {
+      setMsg("Escribe un nombre para la cuenta.");
+      return;
+    }
 
     const { data: sessionData } = await supabase.auth.getSession();
     const user = sessionData.session?.user;
-    if (!user) return setMsg("No logueado.");
+    if (!user) {
+      setMsg("No logueado.");
+      return;
+    }
 
     const { error } = await supabase.from("accounts").insert({
       user_id: user.id,
@@ -434,8 +448,10 @@ export default function Page() {
       currency: "COP",
     });
 
-    if (error) return setMsg(`Error creando cuenta: ${error.message}`);
-
+    if (error) {
+      setMsg(`Error creando cuenta: ${error.message}`);
+      return;
+    }
     setNewAccountName("");
     await refreshData(true);
     setMsg("Cuenta creada.");
@@ -443,10 +459,16 @@ export default function Page() {
 
   const saveTotalLimit = async () => {
     setMsg("");
-    if (!budget?.id) return setMsg("No hay presupuesto activo (ejecuta bootstrap_user()).");
+    if (!budget?.id) {
+      setMsg("No hay presupuesto activo (ejecuta bootstrap_user()).");
+      return;
+    }
 
     const value = Number(totalLimitInput || 0);
-    const { error } = await supabase.from("budgets").update({ total_limit_cop: value }).eq("id", budget.id);
+    const { error } = await supabase
+      .from("budgets")
+      .update({ total_limit_cop: value })
+      .eq("id", budget.id);
 
     setMsg(error ? `Error guardando límite total: ${error.message}` : "Límite total guardado.");
     await refreshData(false);
@@ -454,12 +476,17 @@ export default function Page() {
 
   const saveCategoryLimit = async () => {
     setMsg("");
-    if (!budget?.id) return setMsg("No hay presupuesto activo (ejecuta bootstrap_user()).");
-
+    if (!budget?.id) {
+      setMsg("No hay presupuesto activo (ejecuta bootstrap_user()).");
+      return;
+    }
     const catId = limitCategoryId || "";
     const limitValue = Number(limitCategoryValue || 0);
 
-    if (!catId) return setMsg("Selecciona una categoría.");
+    if (!catId) {
+      setMsg("Selecciona una categoría.");
+      return;
+    }
 
     const { data: existing, error: exErr } = await supabase
       .from("budget_limits")
@@ -468,18 +495,30 @@ export default function Page() {
       .eq("category_id", catId)
       .maybeSingle();
 
-    if (exErr) return setMsg(`Error consultando límite: ${exErr.message}`);
+    if (exErr) {
+      setMsg(`Error consultando límite: ${exErr.message}`);
+      return;
+    }
 
     if (existing?.id) {
-      const { error } = await supabase.from("budget_limits").update({ limit_cop: limitValue }).eq("id", existing.id);
-      if (error) return setMsg(`Error actualizando límite: ${error.message}`);
+      const { error } = await supabase
+        .from("budget_limits")
+        .update({ limit_cop: limitValue })
+        .eq("id", existing.id);
+      if (error) {
+        setMsg(`Error actualizando límite: ${error.message}`);
+        return;
+      }
     } else {
       const { error } = await supabase.from("budget_limits").insert({
         budget_id: budget.id,
         category_id: catId,
         limit_cop: limitValue,
       });
-      if (error) return setMsg(`Error creando límite: ${error.message}`);
+      if (error) {
+        setMsg(`Error creando límite: ${error.message}`);
+        return;
+      }
     }
 
     setMsg("Límite por categoría guardado.");
@@ -490,12 +529,21 @@ export default function Page() {
   const saveTransaction = async () => {
     setMsg("");
     const amount = Number(txAmount || 0);
-    if (!selectedAccount) return setMsg("No hay cuenta activa (ejecuta bootstrap_user()).");
-    if (!amount || amount <= 0) return setMsg("Escribe un monto mayor a 0.");
+    if (!selectedAccount) {
+      setMsg("No hay cuenta activa (ejecuta bootstrap_user()).");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      setMsg("Escribe un monto mayor a 0.");
+      return;
+    }
 
     const { data: sessionData } = await supabase.auth.getSession();
     const user = sessionData.session?.user;
-    if (!user) return setMsg("No logueado.");
+    if (!user) {
+      setMsg("No logueado.");
+      return;
+    }
 
     const categoryIdToSave = (txCategoryId || "").trim() || UNCATEGORIZED_ID;
 
@@ -510,7 +558,10 @@ export default function Page() {
       occurred_at: new Date().toISOString(),
     });
 
-    if (error) return setMsg(`Error guardando transacción: ${error.message}`);
+    if (error) {
+      setMsg(`Error guardando transacción: ${error.message}`);
+      return;
+    }
 
     setMsg("Transacción guardada.");
     setTxAmount("0");
@@ -518,6 +569,7 @@ export default function Page() {
     await refreshData(false);
   };
 
+  // UI helpers
   const categoryNameById = (id: string | null) => {
     if (!id) return "Sin categoría";
     const found = categories.find((c) => c.id === id);
@@ -666,7 +718,7 @@ export default function Page() {
               ) : (
                 budgetLimits.map((bl) => {
                   const catName =
-                    joinName(bl.categories) ??
+                    joinedName(bl.categories) ??
                     categories.find((c) => c.id === bl.category_id)?.name ??
                     "Categoría";
 
@@ -691,6 +743,17 @@ export default function Page() {
                           </div>
                         </div>
                         <div style={{ fontWeight: 700 }}>${formatCOP(limit)} COP</div>
+                      </div>
+
+                      <div style={{ marginTop: 10, height: 10, background: "#eee", borderRadius: 6 }}>
+                        <div
+                          style={{
+                            height: 10,
+                            width: `${Math.min(100, Math.round(ratio * 100))}%`,
+                            background: ratio >= 1 ? "#d32f2f" : ratio >= 0.8 ? "#f57c00" : "#2e7d32",
+                            borderRadius: 6,
+                          }}
+                        />
                       </div>
                     </div>
                   );
@@ -763,7 +826,7 @@ export default function Page() {
             const amt = Number(t.amount_cop ?? 0);
 
             const catName =
-              joinName(t.categories) ?? categoryNameById(t.category_id) ?? "Sin categoría";
+              joinedName(t.categories) ?? categoryNameById(t.category_id) ?? "Sin categoría";
 
             const title = isCredit ? "Ingreso" : "Gasto";
             const sign = isCredit ? "+" : "-";
@@ -771,7 +834,13 @@ export default function Page() {
 
             return (
               <div key={t.id}>
-                <div style={{ fontWeight: 800, color: isCredit ? "green" : "red", fontSize: 16 }}>
+                <div
+                  style={{
+                    fontWeight: 800,
+                    color: isCredit ? "green" : "red",
+                    fontSize: 16,
+                  }}
+                >
                   {title} - {sign}${formatCOP(amt)} COP
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.85 }}>
