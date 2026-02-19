@@ -1,19 +1,18 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "BiYú",
   description: "Tu dinero claro y bajo control",
-  applicationName: "BiYú",
-  appleWebApp: {
-    capable: true,
-    title: "BiYú",
-    statusBarStyle: "default",
+  manifest: "/manifest.webmanifest",
+  themeColor: "#8a2be2",
+  icons: {
+    icon: [
+      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/icon-192x192.png" }],
   },
-};
-
-export const viewport: Viewport = {
-  themeColor: "#8e24aa", // morado/magenta
 };
 
 export default function RootLayout({
