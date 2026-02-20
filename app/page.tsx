@@ -90,6 +90,13 @@ export default function Page() {
   // 🔧 Pega aquí tu UUID real de “Sin categoría”
   const UNCATEGORIZED_ID = "2e13320f-fdf8-44a9-96ec-482baaac8e3f";
 
+  // ✅ DEBUG env vars + conectividad (temporal)
+  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "UNDEFINED";
+  const SUPABASE_KEY =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "UNDEFINED";
+  const SUPABASE_KEY_PREFIX =
+    SUPABASE_KEY === "UNDEFINED" ? "UNDEFINED" : SUPABASE_KEY.slice(0, 8);
+
   const [msg, setMsg] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -128,6 +135,30 @@ export default function Page() {
   const [txNote, setTxNote] = useState<string>("");
 
   const currentMonth = useMemo(() => new Date(), []);
+
+  // ✅ Test directo a Supabase (sin supabase-js) para aislar CORS/red/keys
+  const testSupabaseFetch = async () => {
+    setMsg("");
+    if (SUPABASE_URL === "UNDEFINED" || SUPABASE_KEY === "UNDEFINED") {
+      setMsg(
+        "DEBUG: Env vars UNDEFINED. Revisa Vercel env vars + redeploy (build-time)."
+      );
+      return;
+    }
+
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+        method: "GET",
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+        },
+      });
+      setMsg(`DEBUG: test fetch status=${r.status}`);
+    } catch (e: any) {
+      setMsg(`DEBUG: test fetch error=${e?.message || String(e)}`);
+    }
+  };
 
   // -----------------------------
   // AUTH
@@ -470,7 +501,9 @@ export default function Page() {
       .update({ total_limit_cop: value })
       .eq("id", budget.id);
 
-    setMsg(error ? `Error guardando límite total: ${error.message}` : "Límite total guardado.");
+    setMsg(
+      error ? `Error guardando límite total: ${error.message}` : "Límite total guardado."
+    );
     await refreshData(false);
   };
 
@@ -583,7 +616,14 @@ export default function Page() {
     return (
       <main style={{ padding: 40, maxWidth: 900 }}>
         <h1>BiYú</h1>
-        <p>Estado: No logueado</p>
+
+        {/* ✅ DEBUG (temporal) */}
+        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+          <div>URL: {SUPABASE_URL}</div>
+          <div>KEY: {SUPABASE_KEY_PREFIX}</div>
+        </div>
+
+        <p style={{ marginTop: 10 }}>Estado: No logueado</p>
 
         <div style={{ marginTop: 24 }}>
           <input
@@ -595,6 +635,11 @@ export default function Page() {
           <button onClick={signIn} style={{ padding: 10 }}>
             Login con Magic Link
           </button>
+
+          {/* ✅ Test directo */}
+          <button onClick={testSupabaseFetch} style={{ padding: 10, marginLeft: 12 }}>
+            Test Supabase
+          </button>
         </div>
 
         {msg && <p style={{ marginTop: 16 }}>{msg}</p>}
@@ -605,13 +650,21 @@ export default function Page() {
   return (
     <main style={{ padding: 40, maxWidth: 900 }}>
       <h1>BiYú</h1>
-      <p>Estado: Logueado como {userEmail}</p>
+
+      {/* ✅ DEBUG (temporal) */}
+      <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
+        <div>URL: {SUPABASE_URL}</div>
+        <div>KEY: {SUPABASE_KEY_PREFIX}</div>
+      </div>
+
+      <p style={{ marginTop: 10 }}>Estado: Logueado como {userEmail}</p>
 
       <h2 style={{ marginTop: 10 }}>Saldo: ${formatCOP(balance)} COP</h2>
 
       <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={bootstrap}>Ejecutar bootstrap_user()</button>
         <button onClick={() => refreshData(false)}>Refrescar</button>
+        <button onClick={testSupabaseFetch}>Test Supabase</button>
         <button onClick={signOut}>Cerrar sesión</button>
       </div>
 
@@ -663,7 +716,8 @@ export default function Page() {
 
       <h3>Presupuesto del mes (por cuenta)</h3>
       <p>
-        Mes: <b>{monthLabel(currentMonth)}</b> · Gastado: <b>${formatCOP(spentTotalMonth)} COP</b>
+        Mes: <b>{monthLabel(currentMonth)}</b> · Gastado:{" "}
+        <b>${formatCOP(spentTotalMonth)} COP</b>
       </p>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
@@ -729,7 +783,8 @@ export default function Page() {
                   let statusLabel = "Sin límite";
                   if (limit > 0) {
                     if (ratio >= 1) statusLabel = `Excedido (${Math.round(ratio * 100)}%)`;
-                    else if (ratio >= 0.8) statusLabel = `Cerca del límite (${Math.round(ratio * 100)}%)`;
+                    else if (ratio >= 0.8)
+                      statusLabel = `Cerca del límite (${Math.round(ratio * 100)}%)`;
                     else statusLabel = "OK";
                   }
 
