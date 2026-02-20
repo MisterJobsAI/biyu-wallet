@@ -135,18 +135,7 @@ export default function Page() {
   const [txNote, setTxNote] = useState<string>("");
 
   const currentMonth = useMemo(() => new Date(), []);
-
-  // ✅ Test directo a Supabase (sin supabase-js) para aislar CORS/red/keys
-  const testSupabaseFetch = async () => {
-    setMsg("");
-    if (SUPABASE_URL === "UNDEFINED" || SUPABASE_KEY === "UNDEFINED") {
-      setMsg(
-        "DEBUG: Env vars UNDEFINED. Revisa Vercel env vars + redeploy (build-time)."
-      );
-      return;
-    }
-
-    try {
+      try {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/`, {
         method: "GET",
         headers: {
@@ -617,13 +606,7 @@ export default function Page() {
       <main style={{ padding: 40, maxWidth: 900 }}>
         <h1>BiYú</h1>
 
-        {/* ✅ DEBUG (temporal) */}
-        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
-          <div>URL: {SUPABASE_URL}</div>
-          <div>KEY: {SUPABASE_KEY_PREFIX}</div>
-        </div>
-
-        <p style={{ marginTop: 10 }}>Estado: No logueado</p>
+                <p style={{ marginTop: 10 }}>Estado: No logueado</p>
 
         <div style={{ marginTop: 24 }}>
           <input
@@ -636,11 +619,7 @@ export default function Page() {
             Login con Magic Link
           </button>
 
-          {/* ✅ Test directo */}
-          <button onClick={testSupabaseFetch} style={{ padding: 10, marginLeft: 12 }}>
-            Test Supabase
-          </button>
-        </div>
+                  </div>
 
         {msg && <p style={{ marginTop: 16 }}>{msg}</p>}
       </main>
@@ -664,7 +643,6 @@ export default function Page() {
       <div style={{ display: "flex", gap: 12, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={bootstrap}>Ejecutar bootstrap_user()</button>
         <button onClick={() => refreshData(false)}>Refrescar</button>
-        <button onClick={testSupabaseFetch}>Test Supabase</button>
         <button onClick={signOut}>Cerrar sesión</button>
       </div>
 
