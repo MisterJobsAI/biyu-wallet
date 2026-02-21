@@ -25,7 +25,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body>
+      <body
+        style={{
+          background: "#0b0b0f",
+          minHeight: "100vh",
+          margin: 0,
+        }}
+      >
         <SWRegister />
         {children}
       </body>
