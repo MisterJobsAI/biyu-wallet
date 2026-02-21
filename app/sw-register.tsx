@@ -1,15 +1,12 @@
-"use client";
+import nextPwa from "next-pwa";
 
-import { useEffect } from "react";
+const withPWA = nextPwa({
+  dest: "public",
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === "development",
+});
 
-export default function SWRegister() {
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-
-    navigator.serviceWorker
-      .register("/biyu-sw.js")
-      .catch((err) => console.error("SW register failed:", err));
-  }, []);
-
-  return null;
-}
+export default withPWA({
+  reactStrictMode: true,
+});
