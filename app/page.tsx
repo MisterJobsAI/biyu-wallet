@@ -28,7 +28,6 @@ type Tx = {
   occurred_at: string;
   status: string;
   created_at?: string;
-  // ✅ Supabase a veces devuelve array en joins
   categories?: { name: string }[] | { name: string } | null;
 };
 
@@ -45,7 +44,6 @@ type BudgetLimit = {
   budget_id: string;
   category_id: string;
   limit_cop: number;
-  // ✅ Supabase a veces devuelve array en joins
   categories?: { name: string }[] | { name: string } | null;
 };
 
@@ -77,7 +75,6 @@ function monthLabel(d: Date) {
   return `${y}-${m}-01`;
 }
 
-// ✅ Helper: toma nombre de join (array u objeto)
 function joinedName(
   joined: { name: string }[] | { name: string } | null | undefined
 ) {
@@ -87,15 +84,8 @@ function joinedName(
 }
 
 export default function Page() {
-  // 🔧 Pega aquí tu UUID real de “Sin categoría”
+  // 🔧 UUID real de “Sin categoría”
   const UNCATEGORIZED_ID = "2e13320f-fdf8-44a9-96ec-482baaac8e3f";
-
-  // ✅ DEBUG env vars + conectividad (temporal)
-  const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "UNDEFINED";
-  const SUPABASE_KEY =
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "UNDEFINED";
-  const SUPABASE_KEY_PREFIX =
-    SUPABASE_KEY === "UNDEFINED" ? "UNDEFINED" : SUPABASE_KEY.slice(0, 8);
 
   const [msg, setMsg] = useState<string>("");
   const [userEmail, setUserEmail] = useState<string>("");
@@ -104,6 +94,7 @@ export default function Page() {
   // data
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState<string>("");
+
   const selectedAccount = useMemo(
     () => accounts.find((a) => a.id === selectedAccountId) || null,
     [accounts, selectedAccountId]
@@ -135,36 +126,30 @@ export default function Page() {
   const [txNote, setTxNote] = useState<string>("");
 
   const currentMonth = useMemo(() => new Date(), []);
-      try {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/`, {
-        method: "GET",
-        headers: {
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-        },
-      });
-      setMsg(`DEBUG: test fetch status=${r.status}`);
-    } catch (e: any) {
-      setMsg(`DEBUG: test fetch error=${e?.message || String(e)}`);
-    }
-  };
 
   // -----------------------------
   // AUTH
   // -----------------------------
   useEffect(() => {
-    const init = async () => {
+    let unsub: (() => void) | null = null;
+
+    (async () => {
       const { data } = await supabase.auth.getSession();
-      const email = data.session?.user?.email ?? "";
-      setUserEmail(email);
+      const em = data.session?.user?.email ?? "";
+      setUserEmail(em);
 
-      const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUserEmail(session?.user?.email ?? "");
-      });
+      const { data: sub } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          setUserEmail(session?.user?.email ?? "");
+        }
+      );
 
-      return () => sub.subscription.unsubscribe();
+      unsub = () => sub.subscription.unsubscribe();
+    })();
+
+    return () => {
+      if (unsub) unsub();
     };
-    init();
   }, []);
 
   const signIn = async () => {
@@ -182,7 +167,6 @@ export default function Page() {
   const signOut = async () => {
     await supabase.auth.signOut();
     setMsg("Sesión cerrada.");
-    // reset UI
     setAccounts([]);
     setSelectedAccountId("");
     setCategories([]);
@@ -247,7 +231,6 @@ export default function Page() {
     const catList = (cats ?? []) as Category[];
     setCategories(catList);
 
-    // 3) presupuesto del mes para esa cuenta
     if (!accountId) {
       setBudget(null);
       setBudgetLimits([]);
@@ -259,6 +242,7 @@ export default function Page() {
       return;
     }
 
+    // 3) presupuesto del mes
     const monthStr = monthLabel(currentMonth);
 
     await supabase.from("budgets").upsert(
@@ -287,7 +271,7 @@ export default function Page() {
     setBudget(budRow);
     setTotalLimitInput(String(budRow?.total_limit_cop ?? 0));
 
-    // 4) budget_limits (NO usar created_at)
+    // 4) límites por categoría
     if (budRow?.id) {
       const { data: bl, error: blErr } = await supabase
         .from("budget_limits")
@@ -304,7 +288,7 @@ export default function Page() {
       setBudgetLimits([]);
     }
 
-    // 5) historial transacciones
+    // 5) historial
     const { data: txHist, error: txHistErr } = await supabase
       .from("transactions")
       .select(
@@ -318,8 +302,7 @@ export default function Page() {
       setMsg(`Error cargando transacciones: ${txHistErr.message}`);
       return;
     }
-    const hist = (txHist ?? []) as Tx[];
-    setTxs(hist);
+    setTxs((txHist ?? []) as Tx[]);
 
     // 6) balance
     const { data: txForBalance, error: balErr } = await supabase
@@ -371,13 +354,13 @@ export default function Page() {
     setSpentByCategory(byCat);
 
     // 8) alertas
-    const computedAlerts: AlertItem[] = [];
+    const computed: AlertItem[] = [];
 
     const totalLimit = Number(budRow?.total_limit_cop ?? 0);
     if (totalLimit > 0) {
       const ratio = totalSpent / totalLimit;
       if (ratio >= 1) {
-        computedAlerts.push({
+        computed.push({
           key: "total-danger",
           severity: "danger",
           message: `Excediste el límite total del mes: $${formatCOP(
@@ -385,7 +368,7 @@ export default function Page() {
           )} / $${formatCOP(totalLimit)} COP`,
         });
       } else if (ratio >= 0.8) {
-        computedAlerts.push({
+        computed.push({
           key: "total-warning",
           severity: "warning",
           message: `Cerca del límite total del mes: $${formatCOP(
@@ -405,11 +388,11 @@ export default function Page() {
 
       const catName =
         joinedName(lim.categories) ??
-        categories.find((c) => c.id === catId)?.name ??
+        catList.find((c) => c.id === catId)?.name ??
         "Categoría";
 
       if (ratio >= 1) {
-        computedAlerts.push({
+        computed.push({
           key: `cat-danger-${catId}`,
           severity: "danger",
           message: `Excediste ${catName}: $${formatCOP(spent)} / $${formatCOP(
@@ -417,7 +400,7 @@ export default function Page() {
           )} COP`,
         });
       } else if (ratio >= 0.8) {
-        computedAlerts.push({
+        computed.push({
           key: `cat-warning-${catId}`,
           severity: "warning",
           message: `Cerca del límite en ${catName}: $${formatCOP(
@@ -427,20 +410,18 @@ export default function Page() {
       }
     }
 
-    if (computedAlerts.length === 0) {
-      computedAlerts.push({
+    if (computed.length === 0) {
+      computed.push({
         key: "ok",
         severity: "ok",
         message: "No hay alertas por ahora.",
       });
     }
-    setAlerts(computedAlerts);
+    setAlerts(computed);
   };
 
   useEffect(() => {
-    if (userEmail) {
-      refreshData(true);
-    }
+    if (userEmail) refreshData(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userEmail]);
 
@@ -490,9 +471,7 @@ export default function Page() {
       .update({ total_limit_cop: value })
       .eq("id", budget.id);
 
-    setMsg(
-      error ? `Error guardando límite total: ${error.message}` : "Límite total guardado."
-    );
+    setMsg(error ? `Error guardando límite total: ${error.message}` : "Límite total guardado.");
     await refreshData(false);
   };
 
@@ -502,7 +481,7 @@ export default function Page() {
       setMsg("No hay presupuesto activo (ejecuta bootstrap_user()).");
       return;
     }
-    const catId = limitCategoryId || "";
+    const catId = (limitCategoryId || "").trim();
     const limitValue = Number(limitCategoryValue || 0);
 
     if (!catId) {
@@ -591,7 +570,6 @@ export default function Page() {
     await refreshData(false);
   };
 
-  // UI helpers
   const categoryNameById = (id: string | null) => {
     if (!id) return "Sin categoría";
     const found = categories.find((c) => c.id === id);
@@ -605,8 +583,7 @@ export default function Page() {
     return (
       <main style={{ padding: 40, maxWidth: 900 }}>
         <h1>BiYú</h1>
-
-                <p style={{ marginTop: 10 }}>Estado: No logueado</p>
+        <p>Estado: No logueado</p>
 
         <div style={{ marginTop: 24 }}>
           <input
@@ -618,8 +595,7 @@ export default function Page() {
           <button onClick={signIn} style={{ padding: 10 }}>
             Login con Magic Link
           </button>
-
-                  </div>
+        </div>
 
         {msg && <p style={{ marginTop: 16 }}>{msg}</p>}
       </main>
@@ -629,14 +605,7 @@ export default function Page() {
   return (
     <main style={{ padding: 40, maxWidth: 900 }}>
       <h1>BiYú</h1>
-
-      {/* ✅ DEBUG (temporal) */}
-      <div style={{ marginTop: 6, fontSize: 12, opacity: 0.7 }}>
-        <div>URL: {SUPABASE_URL}</div>
-        <div>KEY: {SUPABASE_KEY_PREFIX}</div>
-      </div>
-
-      <p style={{ marginTop: 10 }}>Estado: Logueado como {userEmail}</p>
+      <p>Estado: Logueado como {userEmail}</p>
 
       <h2 style={{ marginTop: 10 }}>Saldo: ${formatCOP(balance)} COP</h2>
 
@@ -738,10 +707,6 @@ export default function Page() {
               />
 
               <button onClick={saveCategoryLimit}>Guardar límite categoría</button>
-            </div>
-
-            <div style={{ marginTop: 14, fontSize: 12, opacity: 0.8 }}>
-              Tip: escribe un límite y luego guárdalo.
             </div>
 
             <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
