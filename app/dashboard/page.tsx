@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getDashboardSummary } from "@/lib/modules/dashboard/getDashboardSummary";
 import type { DashboardSummary } from "@/lib/modules/dashboard/type";
