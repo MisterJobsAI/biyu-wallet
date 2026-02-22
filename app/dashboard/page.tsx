@@ -19,14 +19,13 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [dashboardSummary, setDashboardSummary] =
+    useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dashboardSummary, setDashboardSummary] = useState<DashboardSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const displayBalance = useMemo(
-    () => formatMoneyCOP(dashboardSummary?.totalBalance ?? 0),
-    [dashboardSummary]
-  );
+  const displayBalance = useMemo(() => {
+    return formatMoneyCOP(dashboardSummary?.totalBalance ?? 0);
+  }, [dashboardSummary]);
 
   useEffect(() => {
     let mounted = true;
@@ -34,26 +33,33 @@ export default function DashboardPage() {
     async function load() {
       try {
         setLoading(true);
-        setError(null);
 
-        const { data, error: authError } = await supabase.auth.getUser();
-        if (authError) throw authError;
-
+        // 🔐 Verificar sesión
+        const { data } = await supabase.auth.getUser();
         const user = data?.user;
+
         if (!user) {
-          router.push("/");
+          router.replace("/");
           return;
         }
 
         if (!mounted) return;
         setUserEmail(user.email ?? "Usuario");
 
-        const s = await getDashboardSummary(user.id);
+        // 📊 Cargar resumen
+        const summary = await getDashboardSummary(user.id);
+
         if (!mounted) return;
-        setDashboardSummary(s);
+        setDashboardSummary(summary);
       } catch (e: any) {
-        if (!mounted) return;
-        setError(e?.message ?? "Error cargando dashboard");
+        // 🚫 No mostramos error técnico de auth
+        const msg = e?.message ?? "";
+        if (msg.toLowerCase().includes("auth session missing")) {
+          router.replace("/");
+          return;
+        }
+
+        console.error("Dashboard error:", e);
       } finally {
         if (!mounted) return;
         setLoading(false);
@@ -80,17 +86,18 @@ export default function DashboardPage() {
           className="bg-purple-800 rounded-xl px-4 py-2 text-sm"
           onClick={async () => {
             await supabase.auth.signOut();
-            router.push("/");
+            router.replace("/");
           }}
         >
           Cerrar sesión
         </button>
       </div>
 
-      {loading && <div className="text-purple-200 mb-4">Cargando datos…</div>}
-      {error && <div className="text-red-300 mb-4">Error: {error}</div>}
+      {loading && (
+        <div className="text-purple-200 mb-4">Cargando datos…</div>
+      )}
 
-      {/* Balance Card */}
+      {/* Balance */}
       <div className="bg-purple-700 rounded-2xl p-6 shadow-lg mb-4">
         <p className="text-sm text-purple-200">Saldo disponible</p>
         <h2 className="text-3xl font-bold mt-2">{displayBalance}</h2>
@@ -104,51 +111,61 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* Quick Actions */}
+      {/* Acciones rápidas */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <button className="bg-purple-800 rounded-xl p-4 text-sm">Enviar</button>
-        <button className="bg-purple-800 rounded-xl p-4 text-sm">Recibir</button>
-        <button className="bg-purple-800 rounded-xl p-4 text-sm">Tarjeta</button>
+        <button className="bg-purple-800 rounded-xl p-4 text-sm">
+          Enviar
+        </button>
+        <button className="bg-purple-800 rounded-xl p-4 text-sm">
+          Recibir
+        </button>
+        <button className="bg-purple-800 rounded-xl p-4 text-sm">
+          Tarjeta
+        </button>
       </div>
 
-      {/* ✅ GRÁFICOS + DEBUG (siempre visible) */}
+      {/* 📊 Charts + Debug */}
       <div className="mb-8">
         <div className="mb-3 text-xs text-purple-200 bg-purple-900/40 rounded-xl p-3">
-          <div>
-            <b>Charts debug</b>
-          </div>
+          <div><b>Charts debug</b></div>
           <div>dashboardSummary: {dashboardSummary ? "OK" : "NULL"}</div>
-          <div>trend30Days: {dashboardSummary?.trend30Days?.length ?? 0}</div>
-          <div>categoryBreakdown: {dashboardSummary?.categoryBreakdown?.length ?? 0}</div>
+          <div>
+            trend30Days: {dashboardSummary?.trend30Days?.length ?? 0}
+          </div>
+          <div>
+            categoryBreakdown:{" "}
+            {dashboardSummary?.categoryBreakdown?.length ?? 0}
+          </div>
         </div>
 
-        {dashboardSummary ? (
+        {dashboardSummary && (
           <div className="min-h-[520px]">
             <DashboardCharts
               trend30Days={dashboardSummary.trend30Days}
-              categoryBreakdown={dashboardSummary.categoryBreakdown.map((c) => ({
-                categoryName: c.categoryName,
-                total: c.total,
-              }))}
+              categoryBreakdown={dashboardSummary.categoryBreakdown.map(
+                (c) => ({
+                  categoryName: c.categoryName,
+                  total: c.total,
+                })
+              )}
             />
-          </div>
-        ) : (
-          <div className="text-sm text-purple-200">
-            No hay summary cargado todavía (charts no pueden renderizar).
           </div>
         )}
       </div>
 
-      {/* Recent Transactions */}
+      {/* Movimientos recientes */}
       <div>
-        <h3 className="text-lg font-semibold mb-4">Movimientos recientes</h3>
+        <h3 className="text-lg font-semibold mb-4">
+          Movimientos recientes
+        </h3>
 
-        {(dashboardSummary?.recentTransactions ?? []).length === 0 && !loading ? (
-          <div className="text-purple-200 text-sm">Aún no tienes movimientos.</div>
+        {(dashboardSummary?.recentTransactions ?? []).length === 0 ? (
+          <div className="text-purple-200 text-sm">
+            Aún no tienes movimientos.
+          </div>
         ) : (
-          (dashboardSummary?.recentTransactions ?? []).map((t) => {
+          dashboardSummary?.recentTransactions.map((t) => {
             const isExpense = t.type === "expense";
-            const amount = Number(t.amount ?? 0);
 
             return (
               <div
@@ -165,7 +182,8 @@ export default function DashboardPage() {
                 </div>
 
                 <span className={isExpense ? "text-red-300" : "text-green-300"}>
-                  {isExpense ? "-" : "+"} {formatMoneyCOP(amount)}
+                  {isExpense ? "-" : "+"}{" "}
+                  {formatMoneyCOP(Number(t.amount))}
                 </span>
               </div>
             );
