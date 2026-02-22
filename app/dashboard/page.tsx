@@ -41,7 +41,6 @@ export default function DashboardPage() {
 
         const user = data?.user;
         if (!user) {
-          // si no hay sesión, vuelve al home (evita “Auth session missing!”)
           router.push("/");
           return;
         }
@@ -62,6 +61,7 @@ export default function DashboardPage() {
     }
 
     load();
+
     return () => {
       mounted = false;
     };
@@ -87,7 +87,7 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {loading && <div className="text-purple-200">Cargando datos…</div>}
+      {loading && <div className="text-purple-200 mb-4">Cargando datos…</div>}
       {error && <div className="text-red-300 mb-4">Error: {error}</div>}
 
       {/* Balance Card */}
@@ -111,18 +111,33 @@ export default function DashboardPage() {
         <button className="bg-purple-800 rounded-xl p-4 text-sm">Tarjeta</button>
       </div>
 
-      {/* ✅ GRÁFICOS (Punto 2 A + B ya integrado) */}
-      {dashboardSummary && (
-        <div className="mb-8">
-          <DashboardCharts
-            trend30Days={dashboardSummary.trend30Days}
-            categoryBreakdown={dashboardSummary.categoryBreakdown.map((c) => ({
-              categoryName: c.categoryName,
-              total: c.total,
-            }))}
-          />
+      {/* ✅ GRÁFICOS + DEBUG (siempre visible) */}
+      <div className="mb-8">
+        <div className="mb-3 text-xs text-purple-200 bg-purple-900/40 rounded-xl p-3">
+          <div>
+            <b>Charts debug</b>
+          </div>
+          <div>dashboardSummary: {dashboardSummary ? "OK" : "NULL"}</div>
+          <div>trend30Days: {dashboardSummary?.trend30Days?.length ?? 0}</div>
+          <div>categoryBreakdown: {dashboardSummary?.categoryBreakdown?.length ?? 0}</div>
         </div>
-      )}
+
+        {dashboardSummary ? (
+          <div className="min-h-[520px]">
+            <DashboardCharts
+              trend30Days={dashboardSummary.trend30Days}
+              categoryBreakdown={dashboardSummary.categoryBreakdown.map((c) => ({
+                categoryName: c.categoryName,
+                total: c.total,
+              }))}
+            />
+          </div>
+        ) : (
+          <div className="text-sm text-purple-200">
+            No hay summary cargado todavía (charts no pueden renderizar).
+          </div>
+        )}
+      </div>
 
       {/* Recent Transactions */}
       <div>
