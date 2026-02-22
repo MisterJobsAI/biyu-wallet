@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { getDashboardSummary } from "@/lib/modules/dashboard/getDashboardSummary";
-import type { DashboardSummary } from "@/lib/modules/dashboard/types";
-
+import type { DashboardSummary } from "@/lib/modules/dashboard/type";
 function formatMoney(n: number) {
   return new Intl.NumberFormat("es-CO", {
     style: "currency",
