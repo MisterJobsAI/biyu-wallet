@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "../../lib/supabaseClient";
 
 type Account = { id: string; user_id: string; name: string; currency: string };
 type Category = { id: string; user_id: string; name: string; icon: string | null };
