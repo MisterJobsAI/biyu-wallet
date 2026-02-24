@@ -7,7 +7,12 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true, // 🔥 CLAVE para Magic Link (#access_token / ?code)
+    detectSessionInUrl: true,
     storageKey: "biyu.supabase.auth",
   },
 });
+
+// 👇 SOLO DEBUG (browser)
+if (typeof window !== "undefined") {
+  (window as any).supabase = supabase;
+}

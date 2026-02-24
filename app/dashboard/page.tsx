@@ -1,67 +1,158 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient';
 
-export default function HomePage() {
+export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [sending, setSending] = useState(false);
 
-  // Si ya hay sesión, mandar al dashboard
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
+
+  // Si ya hay sesión, ir directo al dashboard
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user) router.replace("/dashboard");
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        router.replace('/dashboard');
+      }
     })();
   }, [router]);
 
-  const sendMagicLink = async () => {
-    if (!email) return;
-    setSending(true);
+  // MAGIC LINK
+  const loginWithMagicLink = async () => {
+    setLoading(true);
+    setErrorMsg('');
+    setMessage('');
 
-    const redirectTo = `${window.location.origin}/dashboard`;
+    const redirect = new URL('/auth/callback', window.location.origin).toString();
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: redirectTo },
+      options: {
+        emailRedirectTo: redirect,
+      },
     });
 
-    setSending(false);
+    setLoading(false);
 
     if (error) {
-      alert(error.message);
-      return;
+      setErrorMsg(error.message);
+    } else {
+      setMessage('Revisa tu correo para iniciar sesión.');
     }
+  };
 
-    alert("✅ Revisa tu correo y abre el Magic Link");
+  // GOOGLE LOGIN
+  const loginWithGoogle = async () => {
+    setLoading(true);
+    setErrorMsg('');
+
+    const redirect = new URL('/auth/callback', window.location.origin).toString();
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirect,
+      },
+    });
+
+    if (error) {
+      setErrorMsg(error.message);
+      setLoading(false);
+    }
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-purple-900 to-black text-white p-6 flex items-center justify-center">
-      <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-2xl p-6">
-        <h1 className="text-3xl font-bold mb-2">BiYú</h1>
-        <p className="text-sm text-white/70 mb-6">Inicia sesión con Magic Link</p>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        background: '#0f172a',
+        padding: 24,
+      }}
+    >
+      <div
+        style={{
+          width: 380,
+          padding: 32,
+          borderRadius: 16,
+          background: '#1e293b',
+          color: 'white',
+        }}
+      >
+        <h2 style={{ marginTop: 0 }}>BiYú</h2>
 
-        <div className="space-y-3">
+        <div style={{ marginBottom: 12 }}>
           <input
-            className="w-full rounded-xl bg-black/30 border border-white/10 px-4 py-3 outline-none"
-            placeholder="tu@email.com"
             type="email"
+            placeholder="tu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            style={{
+              width: '100%',
+              height: 44,
+              padding: 10,
+              borderRadius: 8,
+              border: 'none',
+            }}
           />
-
-          <button
-            className="w-full rounded-xl bg-fuchsia-600 hover:bg-fuchsia-700 transition px-4 py-3 font-semibold disabled:opacity-60"
-            disabled={sending}
-            onClick={sendMagicLink}
-          >
-            {sending ? "Enviando..." : "Login con Magic Link"}
-          </button>
         </div>
+
+        <button
+          onClick={loginWithMagicLink}
+          disabled={loading || !email}
+          style={{
+            width: '100%',
+            height: 44,
+            borderRadius: 10,
+            fontWeight: 700,
+            marginBottom: 10,
+            background: '#2563eb',
+            color: 'white',
+            border: 'none',
+          }}
+        >
+          {loading ? 'Enviando…' : 'Entrar con Magic Link'}
+        </button>
+
+        <div style={{ textAlign: 'center', margin: '12px 0', opacity: 0.6 }}>
+          o
+        </div>
+
+        <button
+          onClick={loginWithGoogle}
+          disabled={loading}
+          style={{
+            width: '100%',
+            height: 44,
+            borderRadius: 10,
+            fontWeight: 700,
+            background: '#fff',
+            color: '#000',
+            border: 'none',
+          }}
+        >
+          Continuar con Google
+        </button>
+
+        {message && (
+          <div style={{ marginTop: 16, color: '#22c55e' }}>
+            {message}
+          </div>
+        )}
+
+        {errorMsg && (
+          <div style={{ marginTop: 16, color: '#ef4444' }}>
+            {errorMsg}
+          </div>
+        )}
       </div>
-    </main>
+    </div>
   );
 }
