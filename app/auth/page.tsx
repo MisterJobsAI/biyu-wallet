@@ -1,29 +1,61 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
 
 export default function AuthPage() {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  // ✅ Si vienes de Google con #access_token, esto crea sesión y redirige
+  useEffect(() => {
+    let alive = true
+
+    const run = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (!alive) return
+
+        if (data.session) {
+          // limpia el hash (#access_token...) para que no quede en la barra
+          if (window.location.hash) {
+            window.history.replaceState({}, document.title, window.location.pathname)
+          }
+          router.replace('/dashboard')
+        }
+      } catch (e) {
+        // no hacemos nada: en login puede no haber sesión
+      }
+    }
+
+    run()
+
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) router.replace('/dashboard')
+    })
+
+    return () => {
+      alive = false
+      sub.subscription.unsubscribe()
+    }
+  }, [router])
 
   const handleGoogle = async () => {
     try {
       setErrorMsg(null)
       setLoading(true)
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          skipBrowserRedirect: true,
+          // como tu flujo está volviendo a /auth con hash, lo aprovechamos
+          redirectTo: `${window.location.origin}/auth`,
         },
       })
 
       if (error) throw error
-      if (!data?.url) throw new Error('Supabase no retornó URL de OAuth')
-
-      window.location.assign(data.url)
     } catch (e: any) {
       setErrorMsg(e?.message ?? 'Error iniciando Google OAuth')
       setLoading(false)
