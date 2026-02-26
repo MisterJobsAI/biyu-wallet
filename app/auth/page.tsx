@@ -43,24 +43,29 @@ export default function AuthPage() {
   }, [router])
 
   const handleGoogle = async () => {
-    try {
-      setErrorMsg(null)
-      setLoading(true)
+  alert('CLICK OK') // 👈 esto debe aparecer sí o sí si el click llega
 
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          // como tu flujo está volviendo a /auth con hash, lo aprovechamos
-          redirectTo: `${window.location.origin}/auth`,
-        },
-      })
+  try {
+    setErrorMsg(null)
+    setLoading(true)
 
-      if (error) throw error
-    } catch (e: any) {
-      setErrorMsg(e?.message ?? 'Error iniciando Google OAuth')
-      setLoading(false)
-    }
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+        skipBrowserRedirect: true, // 👈 no dependemos del redirect automático
+      },
+    })
+
+    if (error) throw error
+    if (!data?.url) throw new Error('Supabase no retornó URL de OAuth')
+
+    window.location.assign(data.url) // 👈 redirect manual garantizado
+  } catch (e: any) {
+    setErrorMsg(e?.message ?? 'Error iniciando Google OAuth')
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen flex items-center justify-center">
