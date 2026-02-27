@@ -9,8 +9,47 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  // ✅ Si volvemos de Google con #access_token,
-  // crea sesión y redirige automáticamente
+  
+  useEffect(() => {
+  console.log("AUTH EFFECT RUNNING")
+
+  let alive = true
+
+  const run = async () => {
+    try {
+      const { data, error } = await supabase.auth.getSession()
+
+      console.log("SESSION RESPONSE:", data)
+      console.log("SESSION ERROR:", error)
+
+      if (!alive) return
+
+      if (data?.session) {
+        console.log("SESSION FOUND")
+
+        // Limpia el hash (#access_token=...)
+        if (window.location.hash) {
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname
+          )
+        }
+
+        router.replace('/dashboard')
+      }
+    } catch (err) {
+      console.error("SESSION CHECK FAILED:", err)
+    }
+  }
+
+  run()
+
+  return () => {
+    alive = false
+  }
+}, [router])
+
   useEffect(() => {
     let alive = true
 
