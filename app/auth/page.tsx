@@ -51,29 +51,56 @@ export default function AuthPage() {
 }, [router])
 
   useEffect(() => {
-    let alive = true
+  let alive = true
 
-    const run = async () => {
-      try {
-        const { data } = await supabase.auth.getSession()
-        if (!alive) return
+  const run = async () => {
+    try {
+      // 1️⃣ Si volvemos con #access_token=...
+      const hash = window.location.hash
 
-        if (data.session) {
-          // limpia el hash si existe
-          if (window.location.hash) {
+      if (hash && hash.includes('access_token=')) {
+        const params = new URLSearchParams(hash.replace('#', ''))
+        const access_token = params.get('access_token')
+        const refresh_token = params.get('refresh_token')
+
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          })
+
+          if (error) {
+            console.error('setSession error:', error)
+          } else {
+            // limpiar hash
             window.history.replaceState(
               {},
               document.title,
               window.location.pathname
             )
           }
-
-          router.replace('/dashboard')
         }
-      } catch (err) {
-        console.error('SESSION CHECK ERROR:', err)
       }
+
+      // 2️⃣ Ahora sí pedimos la sesión
+      const { data } = await supabase.auth.getSession()
+
+      if (!alive) return
+
+      if (data.session) {
+        router.replace('/dashboard')
+      }
+    } catch (err) {
+      console.error('Auth processing error:', err)
     }
+  }
+
+  run()
+
+  return () => {
+    alive = false
+  }
+}, [router])
 
     run()
 
