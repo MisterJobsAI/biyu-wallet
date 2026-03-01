@@ -132,7 +132,17 @@ export default function Page() {
     });
     setMsg(error ? error.message : "Revisa tu correo para el Magic Link.");
   };
+  const signInGoogle = async () => {
+  setMsg("")
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: window.location.origin + '/auth/callback',
+    },
+  })
 
+  if (error) setMsg(error.message)
+  }
   const signOut = async () => {
     await supabase.auth.signOut();
     setMsg("Sesión cerrada.");
@@ -490,6 +500,7 @@ export default function Page() {
               style={{ minWidth: 260 }}
             />
             <button onClick={signIn}>Login con Magic Link</button>
+            <button onClick={signInGoogle}>Continuar con Google</button>
           </div>
 
           {msg && <div className="muted" style={{ marginTop: 12 }}>{msg}</div>}
