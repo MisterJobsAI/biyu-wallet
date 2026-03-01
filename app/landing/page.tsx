@@ -501,6 +501,7 @@ export default function Page() {
             />
             <button onClick={signIn}>Login con Magic Link</button>
             <button onClick={signInGoogle}>Continuar con Google</button>
+            <div style={{ marginTop: 8, color: 'white' }}>DEPLOY-MARKER-123</div>
           </div>
 
           {msg && <div className="muted" style={{ marginTop: 12 }}>{msg}</div>}
