@@ -1,8 +1,44 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
+export default function LandingPage() {
+  const router = useRouter();
+
+  // ✅ Si volvemos de Google con ?code=..., creamos sesión y redirigimos
+  useEffect(() => {
+    const run = async () => {
+      const url = new URL(window.location.href);
+      const code = url.searchParams.get("code");
+
+      if (!code) return;
+
+      const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+      if (error) {
+        console.error("exchangeCodeForSession error:", error);
+        // Si ya tienes msg/setMsg, esto lo mostrará
+        // (si tu estado se llama diferente, ajusta el nombre aquí)
+        try {
+          // @ts-ignore
+          setMsg(error.message);
+        } catch {}
+        return;
+      }
+
+      // limpia ?code=...
+      url.searchParams.delete("code");
+      window.history.replaceState({}, document.title, url.pathname + url.search);
+
+      // ✅ ir al dashboard (o cambia a "/landing" si prefieres quedarte aquí)
+      router.replace("/dashboard");
+    };
+
+    run();
+  }, [router]);
+  
 type Account = { id: string; user_id: string; name: string; currency: string };
 type Category = { id: string; user_id: string; name: string; icon: string | null };
 
