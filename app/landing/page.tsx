@@ -38,7 +38,7 @@ export default function LandingPage() {
 
     run();
   }, [router]);
-  
+
 type Account = { id: string; user_id: string; name: string; currency: string };
 type Category = { id: string; user_id: string; name: string; icon: string | null };
 
@@ -104,7 +104,6 @@ function joinedName(joined: { name: string }[] | { name: string } | null | undef
   return joined.name ?? null;
 }
 
-export default function Page() {
   const UNCATEGORIZED_ID = "2e13320f-fdf8-44a9-96ec-482baaac8e3f";
 
   const [msg, setMsg] = useState<string>("");
