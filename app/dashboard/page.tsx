@@ -5,7 +5,8 @@ import { createServerClient } from "@supabase/ssr";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const cookieStore = cookies(); // ✅ sin await
+  // ✅ cookies() es sync (NO await). Esto evita el tipo Promise<...>
+  const cookieStore = cookies();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -15,6 +16,8 @@ export default async function DashboardPage() {
         getAll() {
           return cookieStore.getAll();
         },
+        // En Server Components normalmente NO necesitas setAll para solo leer sesión.
+        // Pero lo dejamos por compatibilidad; si TS te marca cookieStore.set, lo quitamos.
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
@@ -24,7 +27,10 @@ export default async function DashboardPage() {
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
   if (!session) redirect("/login");
 
   return <main>Dashboard OK</main>;
