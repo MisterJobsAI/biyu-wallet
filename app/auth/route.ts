@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
 export async function GET(request: NextRequest) {
-  const cookieStore = cookies(); // ✅ SIN await
+  const response = NextResponse.next();
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,18 +10,21 @@ export async function GET(request: NextRequest) {
     {
       cookies: {
         getAll() {
-          return cookieStore.getAll();
+          return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
+            response.cookies.set(name, value, options);
           });
         },
       },
     }
   );
 
-  // tu lógica aquí...
   const { data } = await supabase.auth.getSession();
-  return NextResponse.json({ ok: true, hasSession: !!data.session });
+
+  return NextResponse.json({
+    ok: true,
+    hasSession: !!data.session,
+  });
 }
