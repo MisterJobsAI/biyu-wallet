@@ -4,41 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
-export default function LandingPage() {
-  const router = useRouter();
-
-  // ✅ Si volvemos de Google con ?code=..., creamos sesión y redirigimos
-  useEffect(() => {
-    const run = async () => {
-      const url = new URL(window.location.href);
-      const code = url.searchParams.get("code");
-
-      if (!code) return;
-
-      const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-      if (error) {
-        console.error("exchangeCodeForSession error:", error);
-        // Si ya tienes msg/setMsg, esto lo mostrará
-        // (si tu estado se llama diferente, ajusta el nombre aquí)
-        try {
-          // @ts-ignore
-          setMsg(error.message);
-        } catch {}
-        return;
-      }
-
-      // limpia ?code=...
-      url.searchParams.delete("code");
-      window.history.replaceState({}, document.title, url.pathname + url.search);
-
-      // ✅ ir al dashboard (o cambia a "/landing" si prefieres quedarte aquí)
-      router.replace("/dashboard");
-    };
-
-    run();
-  }, [router]);
-
 type Account = { id: string; user_id: string; name: string; currency: string };
 type Category = { id: string; user_id: string; name: string; icon: string | null };
 
@@ -104,6 +69,9 @@ function joinedName(joined: { name: string }[] | { name: string } | null | undef
   return joined.name ?? null;
 }
 
+export default function LandingPage() {
+  const router = useRouter();
+
   const UNCATEGORIZED_ID = "2e13320f-fdf8-44a9-96ec-482baaac8e3f";
 
   const [msg, setMsg] = useState<string>("");
@@ -141,9 +109,11 @@ function joinedName(joined: { name: string }[] | { name: string } | null | undef
   const currentMonth = useMemo(() => new Date(), []);
 
   // -----------------------------
-  // AUTH
+  // AUTH (solo leer sesión aquí)
   // -----------------------------
   useEffect(() => {
+    let unsub: (() => void) | null = null;
+
     const init = async () => {
       const { data } = await supabase.auth.getSession();
       setUserEmail(data.session?.user?.email ?? "");
@@ -152,9 +122,14 @@ function joinedName(joined: { name: string }[] | { name: string } | null | undef
         setUserEmail(session?.user?.email ?? "");
       });
 
-      return () => sub.subscription.unsubscribe();
+      unsub = () => sub.subscription.unsubscribe();
     };
+
     init();
+
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   const signIn = async () => {
@@ -167,17 +142,20 @@ function joinedName(joined: { name: string }[] | { name: string } | null | undef
     });
     setMsg(error ? error.message : "Revisa tu correo para el Magic Link.");
   };
-  const signInGoogle = async () => {
-  setMsg("")
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: window.location.origin + '/landing'
-    },
-  })
 
-  if (error) setMsg(error.message)
-  }
+  const signInGoogle = async () => {
+    setMsg("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        // ✅ SIEMPRE callback en OAuth
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) setMsg(error.message);
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setMsg("Sesión cerrada.");
@@ -536,7 +514,7 @@ function joinedName(joined: { name: string }[] | { name: string } | null | undef
             />
             <button onClick={signIn}>Login con Magic Link</button>
             <button onClick={signInGoogle}>Continuar con Google</button>
-            <div style={{ marginTop: 8, color: 'white' }}>DEPLOY-MARKER-123</div>
+            <div style={{ marginTop: 8, color: "white" }}>DEPLOY-MARKER-123</div>
           </div>
 
           {msg && <div className="muted" style={{ marginTop: 12 }}>{msg}</div>}
