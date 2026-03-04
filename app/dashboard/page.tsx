@@ -3,6 +3,12 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import AddEntryForm from "./AddEntryForm";
 
+import HeaderBar from "./components/HeaderBar";
+import BalanceCard from "./components/BalanceCard";
+import MonthSummary from "./components/MonthSummary";
+import TopCategories from "./components/TopCategories";
+import LastMovements from "./components/LastMovements";
+
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
