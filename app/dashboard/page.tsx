@@ -37,11 +37,12 @@ if (accountErr) {
   return (
     <main style={{ padding: 24 }}>
       <h1>Dashboard</h1>
-      <p>User: {user.email}</p>
-      <p>User ID: {user.id}</p>
-
-      <h3>Error real creando cuenta:</h3>
-      <pre>{accountErr.message}</pre>
+      <p><b>User:</b> {user.email}</p>
+      <p><b>User ID:</b> {user.id}</p>
+      <p>❌ Error real creando/cargando `accounts`:</p>
+      <pre style={{ whiteSpace: "pre-wrap" }}>
+        {JSON.stringify(accountErr, null, 2)}
+      </pre>
     </main>
   );
 }
