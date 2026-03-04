@@ -9,6 +9,9 @@ import MonthSummary from "./components/MonthSummary";
 import TopCategories from "./components/TopCategories";
 import LastMovements from "./components/LastMovements";
 
+import AlertsCard from "./components/AlertsCard";
+import AccountsCard from "./components/AccountsCard";
+
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
@@ -185,50 +188,54 @@ export default async function DashboardPage() {
   */
 
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Dashboard</h1>
+  <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+    <HeaderBar email={user.email ?? "no-email"} />
 
-      <p><b>User:</b> {user.email}</p>
+    <div style={{ height: 16 }} />
 
-      <h2>Balances</h2>
-      <ul>
-        {(accounts ?? []).map((a) => (
-          <li key={a.id}>
-            {a.name} — {a.balance} {a.currency}
-          </li>
-        ))}
-      </ul>
+    {/* Card grande de saldo + barra */}
+    <BalanceCard
+      accounts={(accounts ?? []).map((a) => ({
+        id: a.id,
+        name: a.name,
+        balance: Number(a.balance ?? 0),
+        currency: a.currency,
+      }))}
+      monthExpenseCop={expense}
+      budgetLimitCop={10000} // si ya lo tienes en monthly_budgets lo conectamos en el siguiente paso
+      monthLabel={month}
+    />
 
-      <h2>Este mes</h2>
+    <div style={{ height: 16 }} />
 
-      <p><b>Ingresos:</b> {income}</p>
-      <p><b>Gastos:</b> {expense}</p>
-      <p><b>Neto:</b> {income - expense}</p>
+    {/* Grid de 2 cards */}
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 16,
+      }}
+    >
+      <AlertsCard spentCop={expense} limitCop={10000} />
+      <AccountsCard
+        accounts={(accounts ?? []).map((a) => ({
+          id: a.id,
+          name: a.name,
+          balance: Number(a.balance ?? 0),
+          currency: a.currency,
+        }))}
+      />
+    </div>
 
-      <h3>Top categorías (gasto)</h3>
+    <div style={{ height: 16 }} />
 
-      <ul>
-        {topCats.length
-          ? topCats.map((c) => (
-              <li key={c.id}>
-                {c.name}: {c.total}
-              </li>
-            ))
-          : <li>(sin datos aún)</li>}
-      </ul>
+    {/* Mantengo tu summary (por ahora) */}
+    <MonthSummary income={income} expense={expense} net={income - expense} />
 
-      <AddEntryForm categories={(categories ?? []) as any} />
+    <TopCategories topCats={topCats} />
 
-      <h2>Últimos movimientos</h2>
+    <AddEntryForm categories={(categories ?? []) as any} />
 
-      <ul>
-        {(entries ?? []).map((e, i) => (
-          <li key={i}>
-            {new Date(e.occurred_at).toLocaleString()} — {e.kind} {e.amount} {e.asset}
-            {e.description ? ` — ${e.description}` : ""}
-          </li>
-        ))}
-      </ul>
-    </main>
-  );
-}
+    <LastMovements entries={(entries ?? []) as any} />
+  </main>
+);
