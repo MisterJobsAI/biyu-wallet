@@ -29,9 +29,9 @@ export default async function DashboardPage() {
 
   // ✅ Bootstrap COP básico (sin depender de wallet crypto)
   await supabase.from("accounts").upsert(
-    [{ user_id: user.id, name: "Bolsillo principal", kind: "MAIN", currency: "COP" }],
-    { onConflict: "user_id,name" }
-  );
+  [{ user_id: user.id, name: "Bolsillo principal", currency: "COP", balance: 0 }],
+  { onConflict: "user_id,name" }
+);
 
   await supabase.from("categories").upsert(
     [
