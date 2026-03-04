@@ -1,6 +1,14 @@
 export default function HeaderBar({ email }: { email: string }) {
   return (
-    <header style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+    <header
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        flexWrap: "wrap",
+        alignItems: "center",
+      }}
+    >
       <div>
         <h1 style={{ margin: 0, fontSize: 44, fontWeight: 900 }}>BiYú</h1>
         <p style={{ marginTop: 8, opacity: 0.85 }}>Logueado como {email}</p>

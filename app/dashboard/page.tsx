@@ -12,6 +12,14 @@ import LastMovements from "./components/LastMovements";
 import AlertsCard from "./components/AlertsCard";
 import AccountsCard from "./components/AccountsCard";
 
+import HeaderBar from "./components/HeaderBar";
+import BalanceCard from "./components/BalanceCard";
+import MonthSummary from "./components/MonthSummary";
+import TopCategories from "./components/TopCategories";
+import LastMovements from "./components/LastMovements";
+import AlertsCard from "./components/AlertsCard";
+import AccountsCard from "./components/AccountsCard";
+
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
@@ -57,27 +65,56 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: true });
 
   if (accountErr || accountsErr || !accounts || accounts.length === 0) {
-    return (
-      <main style={{ padding: 24 }}>
-        <h1>Dashboard</h1>
+   return (
+  <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+    <HeaderBar email={user.email ?? "no-email"} />
 
-        <p><b>User:</b> {user.email}</p>
-        <p><b>User ID:</b> {user.id}</p>
+    <div style={{ height: 16 }} />
 
-        <h3>Diagnóstico accounts</h3>
+    <BalanceCard
+      accounts={(accounts ?? []).map((a: any) => ({
+        id: a.id,
+        name: a.name,
+        balance: Number(a.balance ?? 0),
+        currency: a.currency,
+      }))}
+      monthExpenseCop={expense}
+      budgetLimitCop={10000}
+      monthLabel={month}
+    />
 
-        <p><b>Upsert error</b></p>
-        <pre>{JSON.stringify(accountErr, null, 2)}</pre>
+    <div style={{ height: 16 }} />
 
-        <p><b>Select error</b></p>
-        <pre>{JSON.stringify(accountsErr, null, 2)}</pre>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 16,
+      }}
+    >
+      <AlertsCard spentCop={expense} limitCop={10000} />
 
-        <p><b>Upsert data</b></p>
-        <pre>{JSON.stringify(upsertData, null, 2)}</pre>
+      <AccountsCard
+        accounts={(accounts ?? []).map((a: any) => ({
+          id: a.id,
+          name: a.name,
+          balance: Number(a.balance ?? 0),
+          currency: a.currency,
+        }))}
+      />
+    </div>
 
-        <p><b>Accounts length:</b> {accounts?.length ?? 0}</p>
-      </main>
-    );
+    <div style={{ height: 16 }} />
+
+    <MonthSummary income={income} expense={expense} net={income - expense} />
+
+    <TopCategories topCats={topCats as any} />
+
+    <AddEntryForm categories={(categories ?? []) as any} />
+
+    <LastMovements entries={(entries ?? []) as any} />
+  </main>
+);
   }
 
   const defaultAccountId = accounts[0].id;

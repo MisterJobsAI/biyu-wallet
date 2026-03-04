@@ -1,93 +1,66 @@
-type Account = { id: string; name: string; balance: number; currency: string };
-
-function formatCOP(n: number) {
-  const sign = n < 0 ? "-" : "";
-  const abs = Math.abs(n);
-  return `${sign}$${abs.toLocaleString("es-CO")}`;
-}
-
-export default function BalanceCard({
-  accounts,
-  monthExpenseCop,
-  budgetLimitCop,
-  monthLabel,
-}: {
-  accounts: Account[];
-  monthExpenseCop: number;
-  budgetLimitCop: number;
-  monthLabel: string; // YYYY-MM-01
-}) {
-  const main = accounts[0];
-  const balance = Number(main?.balance ?? 0);
-  const spent = Math.abs(Number(monthExpenseCop ?? 0));
-  const limit = Math.max(0, Number(budgetLimitCop ?? 0));
-  const pct = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
-
+export default function HeaderBar({ email }: { email: string }) {
   return (
-    <section
+    <header
       style={{
-        borderRadius: 16,
-        padding: 20,
-        background: "rgba(255,255,255,0.06)",
-        backdropFilter: "blur(10px)",
-        border: "1px solid rgba(255,255,255,0.10)",
+        display: "flex",
+        justifyContent: "space-between",
+        gap: 12,
+        flexWrap: "wrap",
+        alignItems: "center",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-        <div>
-          <div style={{ opacity: 0.9, fontWeight: 700 }}>Saldo</div>
-          <div style={{ fontSize: 42, fontWeight: 900, marginTop: 6 }}>
-            {formatCOP(balance)} {main?.currency ?? "COP"}
-          </div>
+      <div>
+        <h1 style={{ margin: 0, fontSize: 44, fontWeight: 900 }}>BiYú</h1>
+        <p style={{ marginTop: 8, opacity: 0.85 }}>Logueado como {email}</p>
+      </div>
 
-          <div style={{ marginTop: 10, opacity: 0.9 }}>
-            <b>Gastado:</b> {formatCOP(spent)}{" "}
-            {limit > 0 ? (
-              <>
-                <span style={{ opacity: 0.7 }}> / </span>
-                <b>Límite:</b> {formatCOP(limit)}
-              </>
-            ) : (
-              <span style={{ opacity: 0.7 }}> (sin límite)</span>
-            )}
-          </div>
-        </div>
-
-        <div
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <button
+          disabled
           style={{
-            alignSelf: "flex-start",
-            padding: "6px 10px",
-            borderRadius: 999,
+            padding: "10px 14px",
+            borderRadius: 12,
             background: "rgba(255,255,255,0.08)",
-            border: "1px solid rgba(255,255,255,0.10)",
-            fontSize: 12,
-            fontWeight: 700,
-            opacity: 0.95,
+            border: "1px solid rgba(255,255,255,0.12)",
+            color: "white",
+            fontWeight: 800,
           }}
         >
-          Mes: {monthLabel}
-        </div>
-      </div>
+          bootstrap_user()
+        </button>
 
-      <div style={{ marginTop: 14 }}>
-        <div
+        <a
+          href="/dashboard"
           style={{
-            height: 10,
-            borderRadius: 999,
-            background: "rgba(255,255,255,0.10)",
-            overflow: "hidden",
+            padding: "10px 14px",
+            borderRadius: 12,
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            color: "white",
+            fontWeight: 800,
+            textDecoration: "none",
+            display: "inline-block",
           }}
         >
-          <div
-            style={{
-              height: "100%",
-              width: `${pct}%`,
-              background: "rgba(255, 0, 80, 0.65)",
-            }}
-          />
-        </div>
-        <div style={{ marginTop: 8, opacity: 0.8, fontSize: 12 }}>{pct}%</div>
+          Refrescar
+        </a>
+
+        <a
+          href="/logout"
+          style={{
+            padding: "10px 14px",
+            borderRadius: 12,
+            background: "rgba(255,255,255,0.08)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            color: "white",
+            fontWeight: 800,
+            textDecoration: "none",
+            display: "inline-block",
+          }}
+        >
+          Cerrar sesión
+        </a>
       </div>
-    </section>
+    </header>
   );
 }
