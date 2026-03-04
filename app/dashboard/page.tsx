@@ -28,10 +28,23 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
 
   // ✅ Bootstrap COP básico (sin depender de wallet crypto)
-  await supabase.from("accounts").upsert(
+  const { error: accountErr } = await supabase.from("accounts").upsert(
   [{ user_id: user.id, name: "Bolsillo principal", currency: "COP", balance: 0 }],
   { onConflict: "user_id,name" }
 );
+
+if (accountErr) {
+  return (
+    <main style={{ padding: 24 }}>
+      <h1>Dashboard</h1>
+      <p>User: {user.email}</p>
+      <p>User ID: {user.id}</p>
+
+      <h3>Error real creando cuenta:</h3>
+      <pre>{accountErr.message}</pre>
+    </main>
+  );
+}
 
   await supabase.from("categories").upsert(
     [
