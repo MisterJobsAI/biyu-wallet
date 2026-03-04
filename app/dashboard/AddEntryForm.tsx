@@ -3,28 +3,41 @@
 import { useMemo, useState } from "react";
 
 type Category = { id: string; name: string; kind: "INCOME" | "EXPENSE" };
+type Account = { id: string; name: string };
 
-export default function AddEntryForm({ categories }: { categories: Category[] }) {
+export default function AddEntryForm({
+  categories,
+  accounts,
+  defaultAccountId,
+}: {
+  categories: Category[];
+  accounts: Account[];
+  defaultAccountId: string;
+}) {
   const [kind, setKind] = useState<"INCOME" | "EXPENSE">("EXPENSE");
-  const [amount, setAmount] = useState("10");
+  const [amount, setAmount] = useState("10000");
+  const [accountId, setAccountId] = useState(defaultAccountId);
   const [categoryId, setCategoryId] = useState("");
-  const [description, setDescription] = useState("");
+  const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const cats = useMemo(() => categories.filter((c) => c.kind === kind), [categories, kind]);
+  const cats = useMemo(
+    () => categories.filter((c) => c.kind === kind),
+    [categories, kind]
+  );
 
   const submit = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/ledger/entry", {
+      const res = await fetch("/api/tx", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           kind,
-          amount: Number(amount),
-          asset: "USDC",
+          amount_cop: Math.trunc(Number(amount)),
+          account_id: accountId,
           category_id: categoryId || null,
-          description,
+          note: note || null,
         }),
       });
 
@@ -39,7 +52,6 @@ export default function AddEntryForm({ categories }: { categories: Category[] })
         return;
       }
 
-      // recarga para ver totales/movimientos
       window.location.reload();
     } finally {
       setLoading(false);
@@ -60,7 +72,18 @@ export default function AddEntryForm({ categories }: { categories: Category[] })
         </label>
 
         <label>
-          Monto:&nbsp;
+          Bolsillo:&nbsp;
+          <select value={accountId} onChange={(e) => setAccountId(e.target.value)}>
+            {accounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          Monto (COP):&nbsp;
           <input value={amount} onChange={(e) => setAmount(e.target.value)} />
         </label>
 
@@ -78,7 +101,7 @@ export default function AddEntryForm({ categories }: { categories: Category[] })
 
         <label>
           Nota:&nbsp;
-          <input value={description} onChange={(e) => setDescription(e.target.value)} />
+          <input value={note} onChange={(e) => setNote(e.target.value)} />
         </label>
 
         <button onClick={submit} disabled={loading}>
