@@ -45,8 +45,19 @@ if (accountErr) {
     </main>
   );
 }
+if (accountErr) {
+  return (
+    <main style={{ padding: 24 }}>
+      <h1>Dashboard</h1>
+      <p><b>User:</b> {user.email}</p>
+      <p><b>User ID:</b> {user.id}</p>
+      <p>❌ Error real creando/cargando `accounts`:</p>
+      <pre style={{ whiteSpace: "pre-wrap" }}>{accountErr.message}</pre>
+    </main>
+  );
+}
 
-  await supabase.from("categories").upsert(
+await supabase.from("categories").upsert(
     [
       { user_id: user.id, name: "Comida", kind: "EXPENSE" },
       { user_id: user.id, name: "Transporte", kind: "EXPENSE" },
