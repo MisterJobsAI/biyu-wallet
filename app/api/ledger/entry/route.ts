@@ -75,13 +75,18 @@ export async function POST(request: NextRequest) {
       occurred_at: new Date().toISOString(),
       reference: "MVP",
     });
-
+   
   if (error) {
     return NextResponse.json(
       { error: error.message },
       { status: 400 }
     );
   }
+  await supabase.rpc("wallet_apply_ledger", {
+  p_user_id: user.id,
+  p_asset: asset,
+  p_amount: amount
+});
 
   return NextResponse.json({ ok: true });
 }
