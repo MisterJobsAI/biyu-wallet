@@ -80,7 +80,7 @@ export default async function DashboardPage() {
       }))}
       monthExpenseCop={expense}
       budgetLimitCop={10000}
-      monthLabel={month}
+      monthLabel={new Date().toISOString().slice(0,7)}
     />
 
     <div style={{ height: 16 }} />
@@ -239,7 +239,7 @@ return (
       }))}
       monthExpenseCop={expense}
       budgetLimitCop={10000}
-      monthLabel={month}
+      monthLabel={new Date().toISOString().slice(0,7)}
     />
 
     <div style={{ height: 16 }} />
