@@ -1,9 +1,45 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
+
 type Account = { id: string; name: string; balance: number; currency: string };
 
-export default function AccountsCard({ accounts }: { accounts: Account[] }) {
-  const active = accounts?.[0];
+type Props = {
+  accounts: Account[];
+  activeAccountId?: string;
+  onChangeActive?: (id: string) => void;
+};
+
+export default function AccountsCard({
+  accounts,
+  activeAccountId,
+  onChangeActive,
+}: Props) {
+  const firstId = accounts?.[0]?.id;
+  const [localActiveId, setLocalActiveId] = useState<string | undefined>(
+    activeAccountId ?? firstId
+  );
+
+  // Carga/persiste en localStorage (solo client)
+  useEffect(() => {
+    const key = "biyu.activeAccountId";
+    const saved = window.localStorage.getItem(key);
+    if (!activeAccountId && saved && accounts.some((a) => a.id === saved)) {
+      setLocalActiveId(saved);
+      onChangeActive?.(saved);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [accounts]);
+
+  useEffect(() => {
+    if (!localActiveId) return;
+    window.localStorage.setItem("biyu.activeAccountId", localActiveId);
+  }, [localActiveId]);
+
+  const active = useMemo(() => {
+    const id = activeAccountId ?? localActiveId ?? firstId;
+    return accounts.find((a) => a.id === id) ?? accounts[0];
+  }, [accounts, activeAccountId, localActiveId, firstId]);
 
   return (
     <section
@@ -20,18 +56,14 @@ export default function AccountsCard({ accounts }: { accounts: Account[] }) {
         <div style={{ opacity: 0.8, fontSize: 14 }}>No tienes cuentas aún.</div>
       ) : (
         <>
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              alignItems: "center",
-              flexWrap: "wrap",
-              marginBottom: 12,
-            }}
-          >
+          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
             <select
-              defaultValue={active?.id}
-              disabled
+              value={active?.id}
+              onChange={(e) => {
+                const id = e.target.value;
+                setLocalActiveId(id);
+                onChangeActive?.(id);
+              }}
               style={{
                 padding: "10px 12px",
                 borderRadius: 12,
@@ -49,23 +81,19 @@ export default function AccountsCard({ accounts }: { accounts: Account[] }) {
             </select>
 
             <div style={{ fontSize: 14, opacity: 0.8 }}>
-              Activa: <strong style={{ opacity: 1 }}>{active?.name}</strong>
+              Saldo:{" "}
+              <strong style={{ opacity: 1 }}>
+                {(active?.balance ?? 0).toLocaleString("es-CO", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
+                {active?.currency}
+              </strong>
             </div>
           </div>
 
-          <div style={{ fontSize: 28, fontWeight: 900, lineHeight: 1.1 }}>
-            {(active?.balance ?? 0).toLocaleString("es-CO", {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}{" "}
-            <span style={{ fontSize: 14, fontWeight: 700, opacity: 0.85 }}>
-              {active?.currency ?? ""}
-            </span>
-          </div>
-
           <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
-            * En el MVP el selector está deshabilitado (cuenta activa = primera
-            cuenta).
+            * Se guarda tu cuenta activa en este dispositivo.
           </div>
         </>
       )}
