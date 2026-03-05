@@ -104,48 +104,66 @@ export default function DashboardClient({
     return { income, expense, topCats };
   }, [filteredEntries, categories]);
 
-  return (
-    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-        {/* Saldo total (por ahora suma todas las cuentas) + presupuesto (filtrado por cuenta activa) */}
-        <BalanceCard
+return (
+  <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr",
+        gap: 16,
+      }}
+    >
+      {/* Row 1 */}
+      <BalanceCard
+        accounts={accounts}
+        monthExpenseCop={recomputed.expense}
+        budgetLimitCop={budgetLimitCop}
+        monthLabel={monthLabel}
+      />
+
+      {/* Row 2 */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
+        }}
+      >
+        <AlertsCard spentCop={recomputed.expense} limitCop={budgetLimitCop} />
+        <AccountsCard
           accounts={accounts}
-          monthExpenseCop={recomputed.expense}
-          budgetLimitCop={budgetLimitCop}
-          monthLabel={monthLabel}
+          activeAccountId={activeAccountId}
+          onChangeActive={setActiveAccountId}
         />
+      </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
-          <AlertsCard spentCop={recomputed.expense} limitCop={budgetLimitCop} />
-
-          <AccountsCard
-            accounts={accounts}
-            activeAccountId={activeAccountId}
-            onChangeActive={setActiveAccountId}
-          />
-        </div>
-
+      {/* Row 3 */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 16,
+        }}
+      >
         <MonthSummary
           income={recomputed.income}
           expense={recomputed.expense}
           net={recomputed.income - recomputed.expense}
         />
-
         <TopCategories topCats={recomputed.topCats as any} />
-
-        {/* AddEntryForm debe aceptar accountId y guardarlo en ledger_entries.account_id */}
-        <AddEntryForm
-          categories={categories as any}
-          accountId={activeAccountId ?? firstId}
-        />
-
-        <LastMovements entries={filteredEntries as any} />
-
-        {/* Debug opcional */}
-        <div style={{ opacity: 0.6, fontSize: 12 }}>
-          Cuenta activa: <strong>{activeAccount?.name ?? "—"}</strong>
-        </div>
       </div>
-    </main>
-  );
-}
+
+      {/* Row 4 */}
+      <AddEntryForm categories={categories as any} accountId={activeAccountId ?? firstId} />
+
+      {/* Row 5 */}
+      <LastMovements entries={filteredEntries as any} />
+    </div>
+
+    {/* ✅ Debug útil (quitar después) */}
+    <div style={{ marginTop: 16, fontSize: 12, opacity: 0.7 }}>
+      Debug: categories={categories?.length ?? 0} · entries={entries?.length ?? 0} ·
+      filtered={filteredEntries?.length ?? 0}
+    </div>
+  </main>
+);
