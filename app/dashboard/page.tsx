@@ -226,6 +226,9 @@ export default async function DashboardPage() {
 
 return (
   <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+    <div style={{ padding: 8, border: "2px solid yellow", marginBottom: 12 }}>
+      ✅ PAGE MARKER v999
+    </div>
     <HeaderBar email={user.email ?? "no-email"} />
 
     <div style={{ height: 16 }} />
