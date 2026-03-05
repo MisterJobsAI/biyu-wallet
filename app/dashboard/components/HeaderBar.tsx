@@ -10,7 +10,7 @@ export default function HeaderBar({ email }: { email: string }) {
       }}
     >
       <div>
-        <h1 style={{ margin: 0, fontSize: 44, fontWeight: 900 }}>BiYú</h1>
+        <h1 style={{ margin: 0, fontSize: 44, fontWeight: 900 }}>BiYú ✅ v2</h1>
         <p style={{ marginTop: 8, opacity: 0.85 }}>Logueado como {email}</p>
       </div>
 

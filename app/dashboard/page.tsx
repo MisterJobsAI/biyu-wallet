@@ -224,28 +224,26 @@ export default async function DashboardPage() {
   ------------------------------------
   */
 
-  return (
+return (
   <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
     <HeaderBar email={user.email ?? "no-email"} />
 
     <div style={{ height: 16 }} />
 
-    {/* Card grande de saldo + barra */}
     <BalanceCard
-      accounts={(accounts ?? []).map((a) => ({
+      accounts={(accounts ?? []).map((a: any) => ({
         id: a.id,
         name: a.name,
         balance: Number(a.balance ?? 0),
         currency: a.currency,
       }))}
       monthExpenseCop={expense}
-      budgetLimitCop={10000} // si ya lo tienes en monthly_budgets lo conectamos en el siguiente paso
+      budgetLimitCop={10000}
       monthLabel={month}
     />
 
     <div style={{ height: 16 }} />
 
-    {/* Grid de 2 cards */}
     <div
       style={{
         display: "grid",
@@ -254,8 +252,9 @@ export default async function DashboardPage() {
       }}
     >
       <AlertsCard spentCop={expense} limitCop={10000} />
+
       <AccountsCard
-        accounts={(accounts ?? []).map((a) => ({
+        accounts={(accounts ?? []).map((a: any) => ({
           id: a.id,
           name: a.name,
           balance: Number(a.balance ?? 0),
@@ -266,10 +265,9 @@ export default async function DashboardPage() {
 
     <div style={{ height: 16 }} />
 
-    {/* Mantengo tu summary (por ahora) */}
     <MonthSummary income={income} expense={expense} net={income - expense} />
 
-    <TopCategories topCats={topCats} />
+    <TopCategories topCats={topCats as any} />
 
     <AddEntryForm categories={(categories ?? []) as any} />
 
