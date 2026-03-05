@@ -15,22 +15,20 @@ import AccountsCard from "./components/AccountsCard";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const cookieStore = cookies(); // ✅ sin await
-
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        // ✅ importante: no intentes setear cookies desde server component
-        // si luego implementas refresh de session, muévelo a middleware o route handler
-        setAll() {},
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    cookies: {
+      getAll() {
+        return cookies().getAll();
       },
-    }
-  );
+      setAll() {
+        // no-op en server component
+      },
+    },
+  }
+);
 
   const {
     data: { session },
