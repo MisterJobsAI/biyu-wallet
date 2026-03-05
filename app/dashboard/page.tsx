@@ -15,13 +15,15 @@ import AccountsCard from "./components/AccountsCard";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const supabase = createServerClient(
+  const cookieStore = await cookies();
+
+const supabase = createServerClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
   {
     cookies: {
       getAll() {
-        return cookies().getAll();
+        return cookieStore.getAll();
       },
       setAll() {
         // no-op en server component
