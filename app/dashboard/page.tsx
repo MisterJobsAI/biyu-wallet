@@ -1,36 +1,30 @@
+// app/dashboard/page.tsx
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
-import AddEntryForm from "./AddEntryForm";
-
+import DashboardClient from "./DashboardClient";
 import HeaderBar from "./components/HeaderBar";
-import BalanceCard from "./components/BalanceCard";
-import MonthSummary from "./components/MonthSummary";
-import TopCategories from "./components/TopCategories";
-import LastMovements from "./components/LastMovements";
-import AlertsCard from "./components/AlertsCard";
-import AccountsCard from "./components/AccountsCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies();
+  const cookieStore = await cookies(); // ✅ Next 16: cookies() es async en tu setup
 
-const supabase = createServerClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {
+          // no-op en Server Component
+        },
       },
-      setAll() {
-        // no-op en server component
-      },
-    },
-  }
-);
+    }
+  );
 
   const {
     data: { session },
@@ -68,7 +62,6 @@ const supabase = createServerClient(
     .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
-  // ✅ Error UI mínimo (no usa vars no definidas)
   if (accountErr || accountsErr || !accounts || accounts.length === 0) {
     return (
       <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
@@ -92,8 +85,6 @@ const supabase = createServerClient(
       </main>
     );
   }
-
-  const defaultAccountId = accounts[0].id;
 
   /*
   ------------------------------------
@@ -122,14 +113,13 @@ const supabase = createServerClient(
 
   /*
   ------------------------------------
-  BOOTSTRAP MONTHLY BUDGET
+  BOOTSTRAP MONTHLY BUDGET (por ahora fijo a 10000)
   ------------------------------------
   */
 
   const now = new Date();
-  const month = new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .slice(0, 10);
+  const monthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+  const month = monthDate.toISOString().slice(0, 10); // YYYY-MM-01
 
   await supabase
     .from("monthly_budgets")
@@ -137,110 +127,56 @@ const supabase = createServerClient(
       onConflict: "user_id,month",
     });
 
-  /*
-  ------------------------------------
-  MONTH STATS
-  ------------------------------------
-  */
-
-  const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-  const to = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
-
-  const { data: monthEntries } = await supabase
-    .from("ledger_entries")
-    .select("amount,kind,category_id")
-    .eq("user_id", user.id)
-    .gte("occurred_at", from)
-    .lt("occurred_at", to);
-
-  const income = (monthEntries ?? [])
-    .filter((e: any) => e.kind === "INCOME")
-    .reduce((s: number, e: any) => s + Number(e.amount), 0);
-
-  const expense = (monthEntries ?? [])
-    .filter((e: any) => e.kind === "EXPENSE")
-    .reduce((s: number, e: any) => s + Math.abs(Number(e.amount)), 0);
-
-  const catName = new Map<string, string>();
-  (categories ?? []).forEach((c: any) => catName.set(c.id, c.name));
-
-  const byCat = new Map<string, number>();
-  for (const e of monthEntries ?? []) {
-    if ((e as any).kind !== "EXPENSE") continue;
-    const key = (e as any).category_id ?? "uncat";
-    byCat.set(key, (byCat.get(key) ?? 0) + Math.abs(Number((e as any).amount)));
-  }
-
-  const topCats = Array.from(byCat.entries())
-    .map(([id, total]) => ({
-      id,
-      name: id === "uncat" ? "(sin categoría)" : catName.get(id) ?? id,
-      total,
-    }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 6);
+  const budgetLimitCop = 10000; // luego lo leemos real desde monthly_budgets
 
   /*
   ------------------------------------
-  LAST ENTRIES
+  LAST ENTRIES (incluye account_id)
   ------------------------------------
   */
 
   const { data: entries } = await supabase
     .from("ledger_entries")
-    .select("amount,kind,asset,description,occurred_at")
+    .select("amount,kind,asset,description,occurred_at,account_id,category_id")
     .eq("user_id", user.id)
     .order("occurred_at", { ascending: false })
-    .limit(12);
+    .limit(200);
 
   /*
   ------------------------------------
-  UI
+  UI (Client)
   ------------------------------------
   */
 
   return (
-    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+    <>
+      {/* HeaderBar en server para mostrar email incluso si el client tarda */}
       <HeaderBar email={user.email ?? "no-email"} />
 
-      <div style={{ height: 16 }} />
-
-      <BalanceCard
+      <DashboardClient
         accounts={(accounts ?? []).map((a: any) => ({
           id: a.id,
           name: a.name,
           balance: Number(a.balance ?? 0),
           currency: a.currency,
         }))}
-        monthExpenseCop={expense}
-        budgetLimitCop={10000}
-        monthLabel={new Date().toISOString().slice(0, 7)}
+        categories={(categories ?? []).map((c: any) => ({
+          id: c.id,
+          name: c.name,
+          kind: c.kind,
+        }))}
+        entries={(entries ?? []).map((e: any) => ({
+          amount: Number(e.amount),
+          kind: e.kind,
+          asset: e.asset,
+          description: e.description,
+          occurred_at: e.occurred_at,
+          account_id: e.account_id,
+          category_id: e.category_id,
+        }))}
+        monthLabel={new Date().toISOString().slice(0, 7)} // YYYY-MM
+        budgetLimitCop={budgetLimitCop}
       />
-
-      <div style={{ height: 16 }} />
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <AlertsCard spentCop={expense} limitCop={10000} />
-
-        <AccountsCard
-          accounts={(accounts ?? []).map((a: any) => ({
-            id: a.id,
-            name: a.name,
-            balance: Number(a.balance ?? 0),
-            currency: a.currency,
-          }))}
-        />
-      </div>
-
-      <div style={{ height: 16 }} />
-
-      <MonthSummary income={income} expense={expense} net={income - expense} />
-
-      <TopCategories topCats={topCats as any} />
-
-      <AddEntryForm categories={(categories ?? []) as any} />
-
-      <LastMovements entries={(entries ?? []) as any} />
-    </main>
+    </>
   );
 }

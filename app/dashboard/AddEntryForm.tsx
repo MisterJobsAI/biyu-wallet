@@ -4,7 +4,12 @@ import { useMemo, useState } from "react";
 
 type Category = { id: string; name: string; kind: "INCOME" | "EXPENSE" };
 
-export default function AddEntryForm({ categories }: { categories: Category[] }) {
+type Props = {
+  categories: Category[];
+  accountId?: string;
+};
+
+export default function AddEntryForm({ categories, accountId }: Props) {
   const [kind, setKind] = useState<"INCOME" | "EXPENSE">("EXPENSE");
   const [amount, setAmount] = useState<string>("1000");
   const [categoryId, setCategoryId] = useState<string>("");
@@ -20,17 +25,25 @@ export default function AddEntryForm({ categories }: { categories: Category[] })
   const submit = async () => {
     setLoading(true);
     setMsg("");
+
+    // ✅ validar que exista cuenta activa
+  if (!accountId) {
+    setMsg("Error: no hay cuenta activa seleccionada.");
+    setLoading(false);
+    return;
+  }
     try {
       const res = await fetch("/api/ledger/entry", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          kind,
-          amount: Number(amount),
-          asset: "COP",
-          category_id: categoryId || null,
-          description: description || null,
-        }),
+        kind,
+        amount: Number(amount),
+        asset: "COP",
+        account_id: accountId, // ✅ nuevo (CLAVE)
+        category_id: categoryId || null,
+        description: description || null,
+       }),
       });
 
       const data = await res.json().catch(() => ({}));
@@ -40,6 +53,7 @@ export default function AddEntryForm({ categories }: { categories: Category[] })
         setMsg("✅ Guardado. Refresca para ver cambios.");
         setDescription("");
       }
+      window.location.reload();
     } catch (e: any) {
       setMsg(`Error: ${e?.message ?? String(e)}`);
     } finally {
