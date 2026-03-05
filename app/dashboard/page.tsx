@@ -1,16 +1,8 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+
 import AddEntryForm from "./AddEntryForm";
-
-import HeaderBar from "./components/HeaderBar";
-import BalanceCard from "./components/BalanceCard";
-import MonthSummary from "./components/MonthSummary";
-import TopCategories from "./components/TopCategories";
-import LastMovements from "./components/LastMovements";
-
-import AlertsCard from "./components/AlertsCard";
-import AccountsCard from "./components/AccountsCard";
 
 import HeaderBar from "./components/HeaderBar";
 import BalanceCard from "./components/BalanceCard";
@@ -23,7 +15,7 @@ import AccountsCard from "./components/AccountsCard";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies(); // ✅ sin await
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,15 +25,21 @@ export default async function DashboardPage() {
         getAll() {
           return cookieStore.getAll();
         },
+        // ✅ importante: no intentes setear cookies desde server component
+        // si luego implementas refresh de session, muévelo a middleware o route handler
         setAll() {},
       },
     }
   );
 
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) redirect("/login");
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   /*
@@ -50,13 +48,19 @@ export default async function DashboardPage() {
   ------------------------------------
   */
 
-  const { data: upsertData, error: accountErr } = await supabase
+  const { error: accountErr } = await supabase
     .from("accounts")
     .upsert(
-      [{ user_id: user.id, name: "Bolsillo principal", currency: "COP", balance: 0 }],
+      [
+        {
+          user_id: user.id,
+          name: "Bolsillo principal",
+          currency: "COP",
+          balance: 0,
+        },
+      ],
       { onConflict: "user_id,name" }
-    )
-    .select();
+    );
 
   const { data: accounts, error: accountsErr } = await supabase
     .from("accounts")
@@ -64,57 +68,29 @@ export default async function DashboardPage() {
     .eq("user_id", user.id)
     .order("created_at", { ascending: true });
 
+  // ✅ Error UI mínimo (no usa vars no definidas)
   if (accountErr || accountsErr || !accounts || accounts.length === 0) {
-   return (
-  <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-    <HeaderBar email={user.email ?? "no-email"} />
-
-    <div style={{ height: 16 }} />
-
-    <BalanceCard
-      accounts={(accounts ?? []).map((a: any) => ({
-        id: a.id,
-        name: a.name,
-        balance: Number(a.balance ?? 0),
-        currency: a.currency,
-      }))}
-      monthExpenseCop={expense}
-      budgetLimitCop={10000}
-      monthLabel={new Date().toISOString().slice(0,7)}
-    />
-
-    <div style={{ height: 16 }} />
-
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 16,
-      }}
-    >
-      <AlertsCard spentCop={expense} limitCop={10000} />
-
-      <AccountsCard
-        accounts={(accounts ?? []).map((a: any) => ({
-          id: a.id,
-          name: a.name,
-          balance: Number(a.balance ?? 0),
-          currency: a.currency,
-        }))}
-      />
-    </div>
-
-    <div style={{ height: 16 }} />
-
-    <MonthSummary income={income} expense={expense} net={income - expense} />
-
-    <TopCategories topCats={topCats as any} />
-
-    <AddEntryForm categories={(categories ?? []) as any} />
-
-    <LastMovements entries={(entries ?? []) as any} />
-  </main>
-);
+    return (
+      <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+        <HeaderBar email={user.email ?? "no-email"} />
+        <div style={{ height: 16 }} />
+        <div
+          style={{
+            borderRadius: 16,
+            padding: 16,
+            border: "1px solid rgba(255,255,255,0.12)",
+            background: "rgba(0,0,0,0.25)",
+          }}
+        >
+          <div style={{ fontWeight: 900, marginBottom: 6 }}>
+            No pudimos cargar tus cuentas
+          </div>
+          <div style={{ opacity: 0.85, fontSize: 14 }}>
+            Intenta recargar. Si persiste, revisa conexión con Supabase o RLS.
+          </div>
+        </div>
+      </main>
+    );
   }
 
   const defaultAccountId = accounts[0].id;
@@ -155,10 +131,11 @@ export default async function DashboardPage() {
     .toISOString()
     .slice(0, 10);
 
-  await supabase.from("monthly_budgets").upsert(
-    [{ user_id: user.id, month, limit_cop: 10000 }],
-    { onConflict: "user_id,month" }
-  );
+  await supabase
+    .from("monthly_budgets")
+    .upsert([{ user_id: user.id, month, limit_cop: 10000 }], {
+      onConflict: "user_id,month",
+    });
 
   /*
   ------------------------------------
@@ -177,29 +154,27 @@ export default async function DashboardPage() {
     .lt("occurred_at", to);
 
   const income = (monthEntries ?? [])
-    .filter((e) => e.kind === "INCOME")
-    .reduce((s, e) => s + Number(e.amount), 0);
+    .filter((e: any) => e.kind === "INCOME")
+    .reduce((s: number, e: any) => s + Number(e.amount), 0);
 
   const expense = (monthEntries ?? [])
-    .filter((e) => e.kind === "EXPENSE")
-    .reduce((s, e) => s + Math.abs(Number(e.amount)), 0);
+    .filter((e: any) => e.kind === "EXPENSE")
+    .reduce((s: number, e: any) => s + Math.abs(Number(e.amount)), 0);
 
   const catName = new Map<string, string>();
-  (categories ?? []).forEach((c) => catName.set(c.id, c.name));
+  (categories ?? []).forEach((c: any) => catName.set(c.id, c.name));
 
   const byCat = new Map<string, number>();
-
   for (const e of monthEntries ?? []) {
-    if (e.kind !== "EXPENSE") continue;
-
-    const key = e.category_id ?? "uncat";
-    byCat.set(key, (byCat.get(key) ?? 0) + Math.abs(Number(e.amount)));
+    if ((e as any).kind !== "EXPENSE") continue;
+    const key = (e as any).category_id ?? "uncat";
+    byCat.set(key, (byCat.get(key) ?? 0) + Math.abs(Number((e as any).amount)));
   }
 
   const topCats = Array.from(byCat.entries())
     .map(([id, total]) => ({
       id,
-      name: id === "uncat" ? "(sin categoría)" : (catName.get(id) ?? id),
+      name: id === "uncat" ? "(sin categoría)" : catName.get(id) ?? id,
       total,
     }))
     .sort((a, b) => b.total - a.total)
@@ -224,52 +199,48 @@ export default async function DashboardPage() {
   ------------------------------------
   */
 
-return (
-  <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-    <div style={{ padding: 8, border: "2px solid yellow", marginBottom: 12, fontWeight: 900 }}>
-      ✅ PAGE MARKER v999
-    </div>
+  return (
+    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
+      <HeaderBar email={user.email ?? "no-email"} />
 
-    <HeaderBar email={user.email ?? "no-email"} />
+      <div style={{ height: 16 }} />
 
-    <div style={{ height: 16 }} />
-
-    <BalanceCard
-      accounts={(accounts ?? []).map((a: any) => ({
-        id: a.id,
-        name: a.name,
-        balance: Number(a.balance ?? 0),
-        currency: a.currency,
-      }))}
-      monthExpenseCop={expense}
-      budgetLimitCop={10000}
-      monthLabel={new Date().toISOString().slice(0, 7)}
-    />
-
-    <div style={{ height: 16 }} />
-
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-      <AlertsCard spentCop={expense} limitCop={10000} />
-
-      <AccountsCard
+      <BalanceCard
         accounts={(accounts ?? []).map((a: any) => ({
           id: a.id,
           name: a.name,
           balance: Number(a.balance ?? 0),
           currency: a.currency,
         }))}
+        monthExpenseCop={expense}
+        budgetLimitCop={10000}
+        monthLabel={new Date().toISOString().slice(0, 7)}
       />
-    </div>
 
-    <div style={{ height: 16 }} />
+      <div style={{ height: 16 }} />
 
-    <MonthSummary income={income} expense={expense} net={income - expense} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <AlertsCard spentCop={expense} limitCop={10000} />
 
-    <TopCategories topCats={topCats as any} />
+        <AccountsCard
+          accounts={(accounts ?? []).map((a: any) => ({
+            id: a.id,
+            name: a.name,
+            balance: Number(a.balance ?? 0),
+            currency: a.currency,
+          }))}
+        />
+      </div>
 
-    <AddEntryForm categories={(categories ?? []) as any} />
+      <div style={{ height: 16 }} />
 
-    <LastMovements entries={(entries ?? []) as any} />
-  </main>
-);
+      <MonthSummary income={income} expense={expense} net={income - expense} />
+
+      <TopCategories topCats={topCats as any} />
+
+      <AddEntryForm categories={(categories ?? []) as any} />
+
+      <LastMovements entries={(entries ?? []) as any} />
+    </main>
+  );
 }
