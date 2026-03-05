@@ -135,13 +135,14 @@ export default function LandingPage() {
   const signIn = async () => {
     setMsg("");
     const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
-      },
-    });
-    setMsg(error ? error.message : "Revisa tu correo para el Magic Link.");
-  };
+  email,
+  options: {
+    emailRedirectTo:
+      typeof window !== "undefined"
+        ? `${window.location.origin}/auth/callback`
+        : undefined,
+  },
+});
 
   const signInGoogle = async () => {
     setMsg("");
