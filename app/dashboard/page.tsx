@@ -229,6 +229,7 @@ return (
     <div style={{ padding: 8, border: "2px solid yellow", marginBottom: 12 }}>
       ✅ PAGE MARKER v999
     </div>
+
     <HeaderBar email={user.email ?? "no-email"} />
 
     <div style={{ height: 16 }} />
@@ -242,18 +243,12 @@ return (
       }))}
       monthExpenseCop={expense}
       budgetLimitCop={10000}
-      monthLabel={new Date().toISOString().slice(0,7)}
+      monthLabel={new Date().toISOString().slice(0, 7)}
     />
 
     <div style={{ height: 16 }} />
 
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 16,
-      }}
-    >
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       <AlertsCard spentCop={expense} limitCop={10000} />
 
       <AccountsCard
