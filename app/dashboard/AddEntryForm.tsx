@@ -17,10 +17,10 @@ export default function AddEntryForm({ categories, accountId }: Props) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState<string>("");
 
-  const cats = useMemo(
-    () => categories.filter((c) => c.kind === kind),
-    [categories, kind]
-  );
+  const cats = useMemo(() => {
+  const list = (categories ?? []).filter((c) => c.kind === kind);
+  return list.length ? list : (categories ?? []);
+}, [categories, kind]);
 
   const submit = async () => {
     setLoading(true);
@@ -84,16 +84,21 @@ export default function AddEntryForm({ categories, accountId }: Props) {
         </label>
 
         <label>
-          Categoría:{" "}
-          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">(sin categoría)</option>
-            {cats.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </label>
+  Categoría:{" "}
+  {/* ✅ Debug temporal (quitar después) */}
+  <div style={{ fontSize: 12, opacity: 0.7, marginTop: 6, marginBottom: 6 }}>
+    Debug categorías: total={categories?.length ?? 0} · para tipo {kind}: {cats.length}
+  </div>
+
+  <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+    <option value="">(sin categoría)</option>
+    {cats.map((c) => (
+      <option key={c.id} value={c.id}>
+        {c.name}
+      </option>
+    ))}
+  </select>
+</label>
 
         <label>
           Nota:{" "}
