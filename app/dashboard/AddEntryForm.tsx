@@ -18,7 +18,11 @@ export default function AddEntryForm({ categories, accountId }: Props) {
   const [msg, setMsg] = useState<string>("");
 
   const cats = useMemo(() => {
-  const list = (categories ?? []).filter((c) => c.kind === kind);
+  const list = (categories ?? []).filter(
+    (c) => String(c.kind).trim().toUpperCase() === kind
+  );
+
+  // si no hay del tipo seleccionado, muestra todas
   return list.length ? list : (categories ?? []);
 }, [categories, kind]);
 
