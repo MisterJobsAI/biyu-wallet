@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
   const amount = kind === "EXPENSE" ? -Math.abs(amountRaw) : Math.abs(amountRaw);
 
   // ✅ tu UI manda COP, así que respetamos COP
-  const asset =
+  const asset = "COP";
   body.asset === "COP"
     ? "COP"
     : body.asset === "EUROC"
