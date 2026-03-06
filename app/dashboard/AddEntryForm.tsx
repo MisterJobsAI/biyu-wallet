@@ -25,44 +25,59 @@ export default function AddEntryForm({ categories, accountId }: Props) {
   return list.length ? list : (categories ?? []);
 }, [categories, kind]);
 
-    const submit = async () => {
-    setLoading(true);
-    setMsg("");
+  useEffect(() => {
+  if (!categoryId && cats.length) {
+    setCategoryId(cats[0].id);
+  }
+}, [kind, cats]);
 
-    // ✅ validar que exista cuenta activa
+const submit = async () => {
+  setLoading(true);
+  setMsg("");
+
   if (!accountId) {
     setMsg("Error: no hay cuenta activa seleccionada.");
     setLoading(false);
     return;
   }
-    try {
-      const res = await fetch("/api/ledger/entry", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
+
+  try {
+    const res = await fetch("/api/ledger/entry", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
         kind,
         amount: Number(amount),
         asset: "COP",
-        account_id: accountId, // ✅ nuevo (CLAVE)
+        account_id: accountId,
         category_id: categoryId || null,
         description: description || null,
-       }),
-      });
+      }),
+    });
 
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setMsg(`Error: ${data?.error ?? res.statusText}`);
-      } else {
-        setMsg("✅ Guardado. Refresca para ver cambios.");
-        setDescription("");
-      }
-      window.location.reload();
-    } catch (e: any) {
-      setMsg(`Error: ${e?.message ?? String(e)}`);
-    } finally {
-      setLoading(false);
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setMsg(`Error: ${data?.error ?? res.statusText}`);
+      return;
     }
-  };
+
+    setMsg("✅ Guardado.");
+    setDescription("");
+    setAmount("1000");
+
+    if (cats.length) {
+      setCategoryId(cats[0].id);
+    } else {
+      setCategoryId("");
+    }
+
+      } catch (e: any) {
+    setMsg(`Error: ${e?.message ?? String(e)}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <section style={{ marginTop: 24 }}>
