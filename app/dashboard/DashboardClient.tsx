@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import BalanceCard from "./BalanceCard";
-import AlertsCard from "./AlertsCard";
-import AccountsCard from "./AccountsCard";
-import AddEntryForm from "../AddEntryForm";
-import LastMovements from "./LastMovements";
+import BalanceCard from "./components/BalanceCard";
+import AlertsCard from "./components/AlertsCard";
+import AccountsCard from "./components/AccountsCard";
+import AddEntryForm from "./AddEntryForm";
+import LastMovements from "./components/LastMovements";
 
 type Account = {
   id: string;
