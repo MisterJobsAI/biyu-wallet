@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 type Category = { id: string; name: string; kind: "INCOME" | "EXPENSE" };
 
@@ -22,11 +22,10 @@ export default function AddEntryForm({ categories, accountId }: Props) {
     (c) => String(c.kind).trim().toUpperCase() === kind
   );
 
-  // si no hay del tipo seleccionado, muestra todas
   return list.length ? list : (categories ?? []);
 }, [categories, kind]);
 
-  const submit = async () => {
+    const submit = async () => {
     setLoading(true);
     setMsg("");
 
