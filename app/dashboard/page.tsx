@@ -111,7 +111,8 @@ export default async function DashboardPage() {
     .order("kind")
     .order("name");
 
-  /*
+  console.log("CATEGORIES SERVER:", categories);
+    /*
   ------------------------------------
   BOOTSTRAP MONTHLY BUDGET (por ahora fijo a 10000)
   ------------------------------------

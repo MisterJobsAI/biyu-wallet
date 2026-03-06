@@ -91,15 +91,26 @@ export default function AddEntryForm({ categories, accountId }: Props) {
        Debug categorías: total={(categories?.length ?? 0)} · para tipo {kind}: {cats.length}
        </div>
 
-       <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-       <option value="">(sin categoría)</option>
+       <select
+  value={categoryId}
+  onChange={(e) => setCategoryId(e.target.value)}
+  style={{
+    padding: "8px 12px",
+    borderRadius: 8,
+    background: "#1a1325",
+    color: "white",
+    border: "1px solid rgba(255,255,255,0.2)",
+    minWidth: 180
+  }}
+>
+  <option value="">(sin categoría)</option>
 
-       {cats.map((c) => (
-       <option key={c.id} value={c.id}>
-        {c.name}
-       </option>
-    ))}
-  </select>
+  {(cats ?? []).map((c) => (
+    <option key={c.id} value={c.id}>
+      {c.name}
+    </option>
+  ))}
+</select>
 </label>
 
         <label>
